@@ -12,11 +12,30 @@ One.prototype.fly = function( pos ) {
 
 One.prototype.len = function( pos ) {
     var s = 0;
-    for( i in this.acts ) {
+    for( i in this.acts )
         s += this.acts[i].len();
-        console.log(this.acts[i], s, this.acts[i].len());
-    }
     return s;
+}
+
+function All( acts ) {
+    this.acts = acts;
+    this.len();
+}
+
+All.prototype.fly = function( pos ) {
+    var m = 0;
+    for( i in this.acts )
+        m = Math.max( m, this.acts[i].fly(pos) );
+    return m;
+}
+
+All.prototype.len = function( pos ) {
+    var m = 0;
+    for( i in this.acts )
+        m = Math.max( m, this.acts[i].len() );
+    this.mlen = m;
+    console.log('>>>', m);
+    return m;
 }
 
 function Anim( init, actor, args ) {
@@ -32,7 +51,15 @@ Anim.prototype.init = function() {
 
 Anim.prototype.fly = function( pos ) {
     var d = (pos > this._len) ? this._len : pos;   // delta
-    this._actor.call(this, this._args[0], d / this.len * 100 + '%', d, this._args);
+
+    // form data to actor (position data + setup data)
+    var args = [
+        this._args[0],               // element to animate
+        d / this._len,               // percent of animation
+        d                            // current position in animation in px
+    ].concat(this._args.slice(1));   // .. and append this data to setup options
+
+    this._actor.apply(this, args);
     return d;
 }
 
@@ -104,6 +131,29 @@ skr.plugin({
         elem.css('transform', 'translate(0,-' + pos + 'px)');
     }
 });
+
+skr.plugin({
+    'name': 'rotate',
+    'init': function(elem, sang, eang, len) {
+        elem.css('transform', 'rotate(' + sang + 'deg)');
+        return len;
+    },
+    'actor': function(elem, per, pos, sang, eang ) {
+        elem.css('transform', 'rotate(' + (sang + (eang - sang) * per) + 'deg)');
+    }
+});
+
+skr.plugin({
+    'name': 'move',
+    'init': function(elem, dx_dy ) {
+        elem.css('transform', 'translate(0px,0px)');
+        return Math.sqrt(Math.pow(dx_dy[0], 2) + Math.pow(dx_dy[1], 2));
+    },
+    'actor': function(elem, per, pos, dx_dy ) {
+        elem.css('transform', 'translate('+ dx_dy[0] * per  + 'px,' + dx_dy[1] * per + 'px)');
+    }
+});
+
 
 // $('#section2, #section3').css('height', $(window).height());
 //
