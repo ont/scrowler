@@ -10,6 +10,36 @@ One.prototype.fly = function( pos ) {
     return pos;
 }
 
+One.prototype.len = function( pos ) {
+    var s = 0;
+    for( i in this.acts ) {
+        s += this.acts[i].len();
+        console.log(this.acts[i], s, this.acts[i].len());
+    }
+    return s;
+}
+
+function Anim( init, actor, args ) {
+    this._actor = actor;
+    this._init = init;
+    this._args = args;
+}
+
+Anim.prototype.init = function() {
+    this._len = this._init.apply(this, this._args);
+    return this;
+}
+
+Anim.prototype.fly = function( pos ) {
+    var d = (pos > this._len) ? this._len : pos;   // delta
+    this._actor.call(this, this._args[0], d / this.len * 100 + '%', d, this._args);
+    return d;
+}
+
+Anim.prototype.len = function() {
+    return this._len;
+}
+
 function Skr(){
     this.tree = null;
 }
@@ -23,15 +53,8 @@ Skr.prototype.plugin = function( plug ){
         // args == [elem, opt1, opt2, opt3]
         //
         var args = [elem].concat( Array.prototype.slice.call( arguments, 1 ) );
-        var len = plug.init.apply(skr, args);
-        console.log(len);
-
-        var actor = function( pos ) {
-            var d = (pos > len) ? len : pos;    // delta
-            plug.actor(elem, d / len * 100 + '%', d, args);
-            return d;
-        };
-        return { fly: actor };
+        var anim = new Anim( plug.init, plug.actor, args );
+        return anim.init();
     }
     skr[ plug.name ] = init;
 };
@@ -58,21 +81,27 @@ Skr.prototype.all = function( acts ){
  * Animate all frames to given pos
  */
 Skr.prototype.fly = function( pos ){
-    console.log(this.tree);
     this.tree.fly( pos );
 };
 
 var skr = new Skr();
 skr.plugin({
     'name': 'slide',
-    'init': function(elem) {
+    'init': function(elem, type) {
         // hiding element
         elem.css('position', 'fixed');
         elem.css('top', '100%');
-        return elem.outerHeight();
+
+        var h = elem.outerHeight();
+        if( type == 'first' ) {
+            h -= $(window).height();
+            elem.css('top', '0');
+        }
+
+        return h;
     },
     'actor': function(elem, per, pos) {
-        elem.css('transform', 'translate(0,-' + per + ')');
+        elem.css('transform', 'translate(0,-' + pos + 'px)');
     }
 });
 
