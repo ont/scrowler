@@ -81,6 +81,12 @@ Skr.prototype.plugin = function( plug ){
         //
         var args = [elem].concat( Array.prototype.slice.call( arguments, 1 ) );
         var anim = new Anim( plug.init, plug.actor, args );
+
+        //
+        // set smooth animation
+        //
+        elem.css('transition', 'transform 180ms ease-out 0ms');
+        elem.css('transition', '-webkit-transform 180ms ease-out 0ms');
         return anim.init();
     }
     skr[ plug.name ] = init;
@@ -118,6 +124,7 @@ skr.plugin({
         // hiding element
         elem.css('position', 'fixed');
         elem.css('top', '100%');
+        elem.css('height', $(window).height());
 
         var h = elem.outerHeight();
         if( type == 'first' ) {
