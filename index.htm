@@ -1,0 +1,90 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>scrowler.js example</title>
+    <style type="text/css">
+        html, body{
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0
+        }
+        section{
+            width: 100%; /* elements with position: fixed lose 100% width, typical for block elements */
+            display: block
+        }
+        #section0{
+            background: green
+        }
+        .triangle{
+            width: 0;
+            height: 0;
+            border-left: 50px solid transparent;
+            border-right: 50px solid transparent;
+            border-top: 100px solid rgba( 255, 255, 255, 0.5 );
+        }
+        .pentagon{
+            position: relative;
+            width: 54px;
+            border-width: 50px 18px 0;
+            border-style: solid;
+            border-color: rgba( 255, 255, 255, 0.5 ) transparent;
+        }
+        .pentagon:before {
+            content: "";
+            position: absolute;
+            width: 0;
+            height: 0;
+            left: -18px;
+            top: -85px;
+            border-width: 0 45px 35px;
+            border-style: solid;
+            border-color: transparent transparent rgba( 255, 255, 255, 0.5 );
+        }
+        #section0 .triangle{
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate( -50%, -50% )
+        }
+        #section0 .pentagon{
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            transform: translate( -50%, -100% )
+        }
+        #section1{
+            background: rgba( 255, 255, 0, 0.7 )
+        }
+        #section2{
+            background: orange
+        }
+    </style>
+</head>
+<body>
+    <section id="section0">
+        <div class="triangle"></div>
+        <div class="pentagon"></div>
+    </section>
+    <section id="section1">
+    </section>
+    <section id="section2">
+    </section>
+    <script src="//code.jquery.com/jquery-1.10.1.min.js" type="text/javascript"></script>
+    <script src="scrowler.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        $(function(){
+            $( '#section0, #section1, #section2' ).css( 'height', $( window ).height() );
+            skr.one([
+                skr.slide( '#section1' ),
+                skr.slide( '#section2' ),
+            ]);
+            $( 'body' ).css( 'height', skr.tree.len() + $( window ).height() );
+            $( window ).on( 'scroll', function(){
+                skr.fly( $( window ).scrollTop() );
+            });
+        });
+    </script>
+</body>
+</html>
