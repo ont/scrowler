@@ -179,7 +179,7 @@ skr.plugin({
 
 skr.plugin({
     'name': 'move',
-    'init': function(elem, dx_dy, len ) {
+    'init': function(elem, dx_dy, len) {
         function unit( x ) {
             x = x.toString();
             var r_p = /%$/;
@@ -196,6 +196,28 @@ skr.plugin({
         elem.css('transform', 'translate('+ this.dx_dy[0][0] * per + this.dx_dy[0][1] + ','
                                           + this.dx_dy[1][0] * per + this.dx_dy[1][1] + ')');
     }
+});
+
+skr.plugin({
+    'name': 'fade',
+    'init': function(elem, s, e, len) {
+        //console.log("here", elem);
+        elem.css('opacity', s);
+        return len;
+    },
+    'actor': function(elem, per, pos, s, e) {
+        elem.css('opacity', s + (e - s) * per);
+    },
+});
+
+skr.plugin({
+    'name': 'delay',
+    'init': function(elem, len) {
+        return len;
+    },
+    'actor': function(elem, per, pos) {
+        // no action
+    },
 });
 
 
