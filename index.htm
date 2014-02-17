@@ -17,6 +17,32 @@
         #section0{
             background: green
         }
+        #section0 .triangle{
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate( -50%, -50% );
+            -webkit-transform: translate( -50%, -50% )
+        }
+        #section0 .pentagon{
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            margin-left: -50px;
+            margin-top: -50px
+        }
+        #section1{
+            background: rgba( 255, 255, 0, 0.7 )
+        }
+        #section1 .hexagon{
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            margin-left: -50px;
+        }
+        #section2{
+            background: orange
+        }
         .triangle{
             width: 0;
             height: 0;
@@ -31,7 +57,7 @@
             border-style: solid;
             border-color: rgba( 255, 255, 255, 0.5 ) transparent;
         }
-        .pentagon:before {
+        .pentagon:before{
             content: "";
             position: absolute;
             width: 0;
@@ -42,25 +68,33 @@
             border-style: solid;
             border-color: transparent transparent rgba( 255, 255, 255, 0.5 );
         }
-        #section0 .triangle{
+        .hexagon{
+            position: relative;
+            width: 100px;
+            height: 55px;
+            background: rgba( 255, 255, 255, 0.5 )
+        }
+        .hexagon:before{
             position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate( -50%, -50% );
-            -webkit-transform: translate( -50%, -50% )
+            left: 0;
+            top: -25px;
+            width: 0;
+            height: 0;
+            border-left: 50px solid transparent;
+            border-right: 50px solid transparent;
+            border-bottom: 25px solid rgba( 255, 255, 255, 0.5 );
+            content: ""
         }
-        #section0 .pentagon{
+        .hexagon:after{
             position: absolute;
-            left: 50%;
-            top: 100%;
-            transform: translate( -50%, -100% );
-            -webkit-transform: translate( -50%, -100% )
-        }
-        #section1{
-            background: rgba( 255, 255, 0, 0.7 )
-        }
-        #section2{
-            background: orange
+            left: 0;
+            bottom: -25px;
+            width: 0;
+            height: 0;
+            border-left: 50px solid transparent;
+            border-right: 50px solid transparent;
+            border-top: 25px solid rgba( 255, 255, 255, 0.5 );
+            content: ""
         }
     </style>
 </head>
@@ -70,6 +104,7 @@
         <div class="pentagon"></div>
     </section>
     <section id="section1">
+        <div class="hexagon"></div>
     </section>
     <section id="section2">
     </section>
@@ -77,16 +112,22 @@
     <script src="scrowler.js" type="text/javascript"></script>
     <script type="text/javascript">
         $(function(){
+            var win_h = $( window ).height();
             skr.config({
                 'trans_time': 180,
                 'trans_func': 'ease-out'
             });
             skr.queue([
                 skr.slide( '#section0', 'first' ),
-                skr.slide( '#section1' ),
+                skr.parallel([
+                    skr.slide( '#section1' ),
+                    skr.rotate( '#section1 > .hexagon', 0, 360, win_h ),
+                    skr.move( '#section0 > .pentagon', [ '500%', 0 ], win_h ),
+                ]),
+                skr.delay( 200 ),
                 skr.slide( '#section2' ),
             ]);
-            $( 'body' ).css( 'height', skr.tree.len() + $( window ).height() );
+            $( 'body' ).css( 'height', skr.tree.len() + win_h );
             $( window ).on( 'scroll', function(){
                 skr.animate( $( window ).scrollTop() );
             });
