@@ -126,6 +126,11 @@ Anim.prototype.sync = function() {
 
 function Skr(){
     this.tree = null;
+    this.conf = null;
+}
+
+Skr.prototype.config = function( conf ){
+    this.conf = conf;
 }
 
 Skr.prototype.plugin = function( plug ){
@@ -142,8 +147,13 @@ Skr.prototype.plugin = function( plug ){
         //
         // set smooth animation
         //
-        elem.css('transition', 'transform 180ms ease-out 0ms');
-        elem.css('transition', '-webkit-transform 180ms ease-out 0ms');
+        elem.css( 'transition', 'transform ' +
+                    this.conf.trans_time + 'ms ' +
+                    this.conf.trans_func + ' 0ms' );
+        elem.css( '-webkit-transition', '-webkit-transform ' +
+                    this.conf.trans_time + 'ms ' +
+                    this.conf.trans_func + ' 0ms' );
+
         return anim.init();
     }
     skr[ plug.name ] = init;
@@ -176,6 +186,12 @@ Skr.prototype.fly = function( pos ){
 };
 
 var skr = new Skr();
+
+skr.config({
+    'trans_time': 180,       // Transition duration in ms
+    'trans_func': 'ease-out' // Transition timing function
+});
+
 skr.plugin({
     'name': 'slide',
     'init': function(elem, type) {

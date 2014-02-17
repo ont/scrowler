@@ -75,8 +75,12 @@
     <script src="scrowler.js" type="text/javascript"></script>
     <script type="text/javascript">
         $(function(){
-            $( '#section0, #section1, #section2' ).css( 'height', $( window ).height() );
+            skr.config({
+                'trans_time': 180,
+                'trans_func': 'ease-out'
+            });
             skr.one([
+                skr.slide( '#section0', 'first' ),
                 skr.slide( '#section1' ),
                 skr.slide( '#section2' ),
             ]);
