@@ -1,17 +1,17 @@
-function One( acts ){
+function Queue( acts ){
     this.acts = acts;
     this._sync = false;
 }
 
-One.prototype.fly = function( pos ){
+Queue.prototype.animate = function( pos ){
     for( var i in this.acts ){
-        pos -= this.acts[ i ].fly( pos );
+        pos -= this.acts[ i ].animate( pos );
         pos = ( pos < 0 ) ? 0 : pos;
     }
     return pos;
 }
 
-One.prototype.len = function( pos ){
+Queue.prototype.len = function( pos ){
     var s = 0;
     for( var i in this.acts )
         s += this.acts[ i ].len();
@@ -19,37 +19,37 @@ One.prototype.len = function( pos ){
     return s;
 }
 
-One.prototype.sync = function(){
+Queue.prototype.sync = function(){
     this._sync = true;
     return this;
 }
 
-function All( acts ){
+function Sync( acts ){
     this.acts = acts;
     this._sync = false;
     this.len();  // calculate this._len
                  // (to avoid problems when we are root group)
 }
 
-All.prototype.sync = function(){
+Sync.prototype.sync = function(){
     this._sync = true;
     return this;
 }
 
-All.prototype.fly = function( pos ){
+Sync.prototype.animate = function( pos ){
     var m = 0;
     for( var i in this.acts )
         if( this.acts[ i ]._sync ){
             var k = this.acts[ i ]._len / this._len;
-            this.acts[ i ].fly( pos * k );  // do not change "m", one of all _must_ be non-sync
+            this.acts[ i ].animate( pos * k );  // do not change "m", one of all _must_ be non-sync
         }
         else
-            m = Math.max( m, this.acts[ i ].fly( pos ) );
+            m = Math.max( m, this.acts[ i ].animate( pos ) );
 
     return m;
 }
 
-All.prototype.len = function( pos ) {
+Sync.prototype.len = function( pos ) {
     this._len = 0;
 
     for( var i in this.acts )
@@ -73,10 +73,10 @@ Anim.prototype.init = function(){
     return this;
 }
 
-Anim.prototype.fly = function( pos ){
+Anim.prototype.animate = function( pos ){
     /*
-     * fly obj at zero pos only if nobody fly before
-     * Chart of some property of obj during animation:
+     * Animate object at zero pos only if nobody was animated before.
+     * Chart of some property of the object during animation:
      *
      * ^
      * |          *-----*
@@ -87,9 +87,9 @@ Anim.prototype.fly = function( pos ){
      * +-------####-----####------------> t
      *   |     | p1       p2
      *   +-----+
-     *      \_______ interpolation segment (here we call p1.fly(0))
+     *      \_______ interpolation segment (here we call p1.animate(0))
      *
-     * We must avoid calling p2.fly(0) after p1.fly(0).
+     * We must avoid calling p2.animate(0) after p1.animate(0).
      */
 
     locks = Anim._locks[ this._name ] || {};  // take named lock for plugin
@@ -106,7 +106,7 @@ Anim.prototype.fly = function( pos ){
 
     // form data to actor (position data + setup data)
     var args = [
-        this._args[ 0 ],    // element to fly
+        this._args[ 0 ],    // element to animate
         delta / this._len,  // percent of animation
         delta               // current position in animation in px
     ].concat( this._args.slice( 1 ) ); // .. and append this data to setup options
@@ -161,29 +161,29 @@ Skr.prototype.plugin = function( plug ){
 };
 
 /*
- * fly all actors one by one
+ * Animate all actors one by one
  */
-Skr.prototype.one = function( acts ){
-    var frame = new One( acts );
+Skr.prototype.queue = function( acts ){
+    var frame = new Queue( acts );
     this.tree = frame;
     return frame;
 };
 
 /*
- * fly all actors in parallel
+ * Animate all actors simultaneously
  */
-Skr.prototype.all = function( acts ){
-    var frame = new All( acts );
+Skr.prototype.sync = function( acts ){
+    var frame = new Sync( acts );
     this.tree = frame;
     return frame;
 };
 
 /*
- * fly all frames to given pos
+ * Animate all frames to the given pos
  */
-Skr.prototype.fly = function( pos ){
-    Anim._locks = {};      // remove all locks
-    this.tree.fly( pos );  // fly to target position
+Skr.prototype.animate = function( pos ){
+    Anim._locks = {};          // remove all locks
+    this.tree.animate( pos );  // animate to target position
 };
 
 var skr = new Skr();

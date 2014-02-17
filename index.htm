@@ -81,14 +81,14 @@
                 'trans_time': 180,
                 'trans_func': 'ease-out'
             });
-            skr.one([
+            skr.queue([
                 skr.slide( '#section0', 'first' ),
                 skr.slide( '#section1' ),
                 skr.slide( '#section2' ),
             ]);
             $( 'body' ).css( 'height', skr.tree.len() + $( window ).height() );
             $( window ).on( 'scroll', function(){
-                skr.fly( $( window ).scrollTop() );
+                skr.animate( $( window ).scrollTop() );
             });
         });
     </script>
