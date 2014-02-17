@@ -24,19 +24,19 @@ Queue.prototype.sync = function(){
     return this;
 }
 
-function Sync( acts ){
+function Parallel( acts ){
     this.acts = acts;
     this._sync = false;
     this.len();  // calculate this._len
                  // (to avoid problems when we are root group)
 }
 
-Sync.prototype.sync = function(){
+Parallel.prototype.sync = function(){
     this._sync = true;
     return this;
 }
 
-Sync.prototype.animate = function( pos ){
+Parallel.prototype.animate = function( pos ){
     var m = 0;
     for( var i in this.acts )
         if( this.acts[ i ]._sync ){
@@ -49,7 +49,7 @@ Sync.prototype.animate = function( pos ){
     return m;
 }
 
-Sync.prototype.len = function( pos ) {
+Parallel.prototype.len = function( pos ) {
     this._len = 0;
 
     for( var i in this.acts )
@@ -172,8 +172,8 @@ Skr.prototype.queue = function( acts ){
 /*
  * Animate all actors simultaneously
  */
-Skr.prototype.sync = function( acts ){
-    var frame = new Sync( acts );
+Skr.prototype.parallel = function( acts ){
+    var frame = new Parallel( acts );
     this.tree = frame;
     return frame;
 };
