@@ -1,50 +1,50 @@
-function One( acts ) {
+function One( acts ){
     this.acts = acts;
     this._sync = false;
 }
 
-One.prototype.fly = function( pos ) {
-    for( i in this.acts ) {
-        pos -= this.acts[i].fly(pos);
+One.prototype.fly = function( pos ){
+    for( var i in this.acts ){
+        pos -= this.acts[ i ].fly( pos );
         pos = ( pos < 0 ) ? 0 : pos;
     }
     return pos;
 }
 
-One.prototype.len = function( pos ) {
+One.prototype.len = function( pos ){
     var s = 0;
-    for( i in this.acts )
-        s += this.acts[i].len();
+    for( var i in this.acts )
+        s += this.acts[ i ].len();
     this._len = s;
     return s;
 }
 
-One.prototype.sync = function() {
+One.prototype.sync = function(){
     this._sync = true;
     return this;
 }
 
-function All( acts ) {
+function All( acts ){
     this.acts = acts;
     this._sync = false;
     this.len();  // calculate this._len
                  // (to avoid problems when we are root group)
 }
 
-All.prototype.sync = function() {
+All.prototype.sync = function(){
     this._sync = true;
     return this;
 }
 
-All.prototype.fly = function( pos ) {
+All.prototype.fly = function( pos ){
     var m = 0;
-    for( i in this.acts )
-        if( this.acts[i]._sync ) {
-            var k = this.acts[i]._len / this._len;
-            this.acts[i].fly( pos * k );  // do not change "m", one of all _must_ be non-sync
+    for( var i in this.acts )
+        if( this.acts[ i ]._sync ){
+            var k = this.acts[ i ]._len / this._len;
+            this.acts[ i ].fly( pos * k );  // do not change "m", one of all _must_ be non-sync
         }
         else
-            m = Math.max( m, this.acts[i].fly(pos) );
+            m = Math.max( m, this.acts[ i ].fly( pos ) );
 
     return m;
 }
@@ -52,14 +52,14 @@ All.prototype.fly = function( pos ) {
 All.prototype.len = function( pos ) {
     this._len = 0;
 
-    for( i in this.acts )
-        if( !this.acts[i]._sync )   // take into account only rigid (non-fluid, non-sync) acts
-            this._len = Math.max( this._len, this.acts[i].len() );
+    for( var i in this.acts )
+        if( ! this.acts[ i ]._sync )   // take into account only rigid (non-fluid, non-sync) acts
+            this._len = Math.max( this._len, this.acts[ i ].len() );
 
     return this._len;
 }
 
-function Anim( sel, name, init, actor, args ) {
+function Anim( sel, name, init, actor, args ){
     this._sel = sel;    // original jquery selector in form of string (for locks)
     this._name = name;  // .. plugin name, also for locks
     this._actor = actor;
@@ -68,14 +68,14 @@ function Anim( sel, name, init, actor, args ) {
     this._sync = false;
 }
 
-Anim.prototype.init = function() {
-    this._len = this._init.apply(this, this._args);
+Anim.prototype.init = function(){
+    this._len = this._init.apply( this, this._args );
     return this;
 }
 
-Anim.prototype.fly = function( pos ) {
+Anim.prototype.fly = function( pos ){
     /*
-     * Animate obj at zero pos only if nobody animate before
+     * fly obj at zero pos only if nobody fly before
      * Chart of some property of obj during animation:
      *
      * ^
@@ -92,34 +92,35 @@ Anim.prototype.fly = function( pos ) {
      * We must avoid calling p2.fly(0) after p1.fly(0).
      */
 
-    locks = Anim._locks[this._name] || {};  // take named lock for plugin
+    locks = Anim._locks[ this._name ] || {};  // take named lock for plugin
 
     // we called with 0, check if we are first and can interpolate
-    if( pos == 0 && locks[this._sel] )
+    if( pos == 0 && locks[ this._sel ] )
         return 0;  // go away we are not first
 
-    locks[this._sel] = true;                // add lock to selector
-    Anim._locks[this._name] = locks;
+    locks[ this._sel ] = true;                // add lock to selector
+    Anim._locks[ this._name ] = locks;
 
 
-    var d = (pos > this._len) ? this._len : pos;   // delta
+    var delta = ( pos > this._len ) ? this._len : pos;
 
     // form data to actor (position data + setup data)
     var args = [
-        this._args[0],               // element to animate
-        d / this._len,               // percent of animation
-        d                            // current position in animation in px
-    ].concat(this._args.slice(1));   // .. and append this data to setup options
+        this._args[ 0 ],    // element to fly
+        delta / this._len,  // percent of animation
+        delta               // current position in animation in px
+    ].concat( this._args.slice( 1 ) ); // .. and append this data to setup options
 
-    this._actor.apply(this, args);
-    return d;
+    this._actor.apply( this, args );
+
+    return delta;
 }
 
-Anim.prototype.len = function() {
+Anim.prototype.len = function(){
     return this._len;
 }
 
-Anim.prototype.sync = function() {
+Anim.prototype.sync = function(){
     this._sync = true;
     return this;
 }
@@ -135,13 +136,13 @@ Skr.prototype.config = function( conf ){
 
 Skr.prototype.plugin = function( plug ){
     var init = function( sel ) {
-        var elem = $(sel);
+        var elem = $( sel );
 
         //
         // arguments == ['selector', opt1, opt2, opt3]
         // args == [elem, opt1, opt2, opt3]
         //
-        var args = [elem].concat( Array.prototype.slice.call( arguments, 1 ) );
+        var args = [ elem ].concat( Array.prototype.slice.call( arguments, 1 ) );
         var anim = new Anim( sel, plug.name, plug.init, plug.actor, args );
 
         //
@@ -160,7 +161,7 @@ Skr.prototype.plugin = function( plug ){
 };
 
 /*
- * Animates all actors one by one
+ * fly all actors one by one
  */
 Skr.prototype.one = function( acts ){
     var frame = new One( acts );
@@ -169,7 +170,7 @@ Skr.prototype.one = function( acts ){
 };
 
 /*
- * Animates all actors in parallel
+ * fly all actors in parallel
  */
 Skr.prototype.all = function( acts ){
     var frame = new All( acts );
@@ -178,7 +179,7 @@ Skr.prototype.all = function( acts ){
 };
 
 /*
- * Animate all frames to given pos
+ * fly all frames to given pos
  */
 Skr.prototype.fly = function( pos ){
     Anim._locks = {};      // remove all locks
@@ -194,84 +195,80 @@ skr.config({
 
 skr.plugin({
     'name': 'slide',
-    'init': function(elem, type) {
+    'init': function( elem, type ){
         // hiding element
-        elem.css('position', 'fixed');
-        elem.css('top', '100%');
-        elem.css('height', $(window).height());
+        elem.css( 'position', 'fixed' );
+        elem.css( 'top', '100%' );
+        elem.css( 'height', $( window ).height() );
 
         var h = elem.outerHeight();
-        if( type == 'first' ) {
-            h -= $(window).height();
-            elem.css('top', '0');
+
+        if( type == 'first' ){
+            h -= $( window ).height();
+            elem.css( 'top', '0' );
         }
 
         return h;
     },
-    'actor': function(elem, per, pos) {
-        elem.css('transform', 'translate(0,-' + pos + 'px)');
+    'actor': function( elem, per, pos ){
+        elem.css( 'transform', 'translate(0,-' + pos + 'px)' );
     }
 });
 
 skr.plugin({
     'name': 'rotate',
-    'init': function(elem, sang, eang, len) {
-        elem.css('transform', 'rotate(' + sang + 'deg)');
+    'init': function( elem, sang, eang, len ){
+        elem.css( 'transform', 'rotate(' + sang + 'deg)' );
         return len;
     },
-    'actor': function(elem, per, pos, sang, eang ) {
-        elem.css('transform', 'rotate(' + (sang + (eang - sang) * per) + 'deg)');
+    'actor': function( elem, per, pos, sang, eang ){
+        elem.css( 'transform', 'rotate(' + ( sang + ( eang - sang ) * per ) + 'deg)' );
     }
 });
 
 skr.plugin({
     'name': 'move',
-    'init': function(elem, dx_dy, len) {
-        function unit( x ) {
+    'init': function( elem, dx_dy, len ){
+
+        function unit( x ){
             x = x.toString();
-            var r_p = /%$/;
-            var r_px = /px$/;
-            if( x.search(r_p)  != -1 )
-                return [ x.replace(r_p,  ''), '%' ];
-            return [ x.replace(r_px, ''), 'px' ];
+            var r_p = /%$/,
+                r_px = /px$/;
+
+            if( x.search( r_p ) != -1 )
+                return [ x.replace( r_p,  '' ), '%' ];
+
+            return [ x.replace( r_px, '' ), 'px' ];
         }
-        this.dx_dy = [ unit(dx_dy[0]), unit(dx_dy[1]) ];  // save parsed deltas
+
+        this.dx_dy = [ unit( dx_dy[ 0 ] ),
+                       unit( dx_dy[ 1 ] ) ];  // save parsed deltas
         return len;
     },
     // here we don't use "dx_dy" and "len" options, we use parsed "this.dx_dy"
-    'actor': function(elem, per, pos) {
-        elem.css('transform', 'translate('+ this.dx_dy[0][0] * per + this.dx_dy[0][1] + ','
-                                          + this.dx_dy[1][0] * per + this.dx_dy[1][1] + ')');
+    'actor': function( elem, per, pos ){
+        elem.css( 'transform', 'translate(' + this.dx_dy[ 0 ][ 0 ] * per + this.dx_dy[ 0 ][ 1 ] + ','
+                                            + this.dx_dy[ 1 ][ 0 ] * per + this.dx_dy[ 1 ][ 1 ] + ')' );
     }
 });
 
 skr.plugin({
     'name': 'fade',
-    'init': function(elem, s, e, len) {
-        elem.css('opacity', s);
+    'init': function( elem, sop, eop, len ){
+        elem.css( 'opacity', sop );
         return len;
     },
-    'actor': function(elem, per, pos, s, e) {
-        elem.css('opacity', s + (e - s) * per);
+    'actor': function( elem, per, pos, sop, eop ){
+        elem.css( 'opacity', sop + ( eop - sop ) * per );
     },
 });
 
 skr.plugin({
     'name': 'delay',
-    'init': function(elem, len) {
+    'init': function( elem, len ){
         return len;
     },
-    'actor': function(elem, per, pos) {
+    'actor': function( elem, per, pos ){
         // no action
     },
 });
-
-
-// $('#section2, #section3').css('height', $(window).height());
-//
-// skr.one([
-//     skr.slide('#section2',1,2,'a'),
-//     skr.slide('#section3'),
-//     //skr.all(['anim2-lhand', 'anim2-rhand', 'anim2-ipad']),
-//     //skr.all(['anim2-hidehands', 'anim2-showipad']),
-// ]);
