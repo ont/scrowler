@@ -258,8 +258,8 @@ skr.plugin({
 
 skr.plugin({
     'name': 'delay',
-    'init': function(elem, len) {
-        return len;
+    'init': function(elem) {
+        return elem[0];
     },
     'actor': function(elem, per, pos) {
         // no action
