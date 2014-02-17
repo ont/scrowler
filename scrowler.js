@@ -59,7 +59,9 @@ All.prototype.len = function( pos ) {
     return this._len;
 }
 
-function Anim( init, actor, args ) {
+function Anim( sel, name, init, actor, args ) {
+    this._sel = sel;    // original jquery selector in form of string (for locks)
+    this._name = name;  // .. plugin name, also for locks
     this._actor = actor;
     this._init = init;
     this._args = args;
@@ -72,6 +74,34 @@ Anim.prototype.init = function() {
 }
 
 Anim.prototype.fly = function( pos ) {
+    /*
+     * Animate obj at zero pos only if nobody animate before
+     * Chart of some property of obj during animation:
+     *
+     * ^
+     * |          *-----*
+     * |         /       \
+     * |        /         \
+     * | ------*           *-------
+     * |
+     * +-------####-----####------------> t
+     *   |     | p1       p2
+     *   +-----+
+     *      \_______ interpolation segment (here we call p1.fly(0))
+     *
+     * We must avoid calling p2.fly(0) after p1.fly(0).
+     */
+
+    locks = Anim._locks[this._name] || {};  // take named lock for plugin
+
+    // we called with 0, check if we are first and can interpolate
+    if( pos == 0 && locks[this._sel] )
+        return 0;  // go away we are not first
+
+    locks[this._sel] = true;                // add lock to selector
+    Anim._locks[this._name] = locks;
+
+
     var d = (pos > this._len) ? this._len : pos;   // delta
 
     // form data to actor (position data + setup data)
@@ -107,7 +137,7 @@ Skr.prototype.plugin = function( plug ){
         // args == [elem, opt1, opt2, opt3]
         //
         var args = [elem].concat( Array.prototype.slice.call( arguments, 1 ) );
-        var anim = new Anim( plug.init, plug.actor, args );
+        var anim = new Anim( sel, plug.name, plug.init, plug.actor, args );
 
         //
         // set smooth animation
@@ -141,7 +171,8 @@ Skr.prototype.all = function( acts ){
  * Animate all frames to given pos
  */
 Skr.prototype.fly = function( pos ){
-    this.tree.fly( pos );
+    Anim._locks = {};      // remove all locks
+    this.tree.fly( pos );  // fly to target position
 };
 
 var skr = new Skr();
@@ -201,7 +232,6 @@ skr.plugin({
 skr.plugin({
     'name': 'fade',
     'init': function(elem, s, e, len) {
-        //console.log("here", elem);
         elem.css('opacity', s);
         return len;
     },
