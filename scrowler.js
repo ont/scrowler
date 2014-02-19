@@ -59,14 +59,33 @@ Parallel.prototype.len = function( pos ) {
     return this._len;
 }
 
-function Anim( sel, name, init, actor, args ){
+function Anim( sel, elem, name, init, actor, args ){
     this._sel = sel;    // original jquery selector in form of string (for locks)
+    this._elem = elem;  // animated element returned by $(sel)
     this._name = name;  // .. plugin name, also for locks
     this._actor = actor;
     this._init = init;
     this._args = args;
     this._sync = false;
+
+    /*
+     * Create morph in central 'cache'.
+     * Morphs are special subcache objectects for CSS 'transform' property.
+     * Different plugins can change this obj to achieve complex animation.
+     */
+    if( Anim._morphs[ sel ] === undefined )
+        Anim._morphs[ sel ] = {
+            ux: 'px',      // units for translations
+            uy: 'px',      // ..
+            dx: null,      // translation delta (null indicates nontouched property)
+            dy: null,      // ..
+            r: null,       // rotation (always in degree)
+            s: null,       // scale
+            e: this._elem  // element to animate (used by Scrowler class)
+        };
 }
+
+Anim._morphs = {};  // cache of morphs
 
 Anim.prototype.init = function(){
     this._len = this._init.apply( this, this._args );
@@ -106,9 +125,10 @@ Anim.prototype.animate = function( pos ){
 
     // form data to actor (position data + setup data)
     var args = [
-        this._args[ 0 ],    // element to animate
-        delta / this._len,  // percent of animation
-        delta               // current position in animation in px
+        this._args[ 0 ],             // element to animate
+        Anim._morphs[ this._sel ],   // special obj for CSS 'transform' property
+        delta / this._len,           // percent of animation
+        delta                        // current position in animation in px
     ].concat( this._args.slice( 1 ) ); // .. and append this data to setup options
 
     this._actor.apply( this, args );
@@ -143,7 +163,7 @@ Skr.prototype.plugin = function( plug ){
         // args == [elem, opt1, opt2, opt3]
         //
         var args = [ elem ].concat( Array.prototype.slice.call( arguments, 1 ) );
-        var anim = new Anim( sel, plug.name, plug.init, plug.actor, args );
+        var anim = new Anim( sel, elem, plug.name, plug.init, plug.actor, args );
 
         //
         // set smooth animation
@@ -159,6 +179,23 @@ Skr.prototype.plugin = function( plug ){
     }
     skr[ plug.name ] = init;
 };
+
+/*
+ * Burn all morphs under all elems into CSS 'transform'
+ */
+Skr.prototype.burn = function(){
+    for( var i in Anim._morphs )
+    {
+        var m = Anim._morphs[ i ];
+        var tmp = '';
+        if( m.dx !== null ) tmp += 'translateX(' + m.dx + m.ux + ') ';
+        if( m.dy !== null ) tmp += 'translateY(' + m.dy + m.uy + ') ';
+        if( m.r  !== null ) tmp += 'rotate(' + m.r + 'deg) ';
+        if( m.s  !== null ) tmp += 'scale(' + m.s + ') ';
+
+        m.e.css( 'transform', tmp );
+    }
+}
 
 /*
  * Animate all actors one by one
@@ -184,6 +221,7 @@ Skr.prototype.parallel = function( acts ){
 Skr.prototype.animate = function( pos ){
     Anim._locks = {};          // remove all locks
     this.tree.animate( pos );  // animate to target position
+    this.burn();               // burn all morphs into CSS
 };
 
 var skr = new Skr();
@@ -210,19 +248,20 @@ skr.plugin({
 
         return h;
     },
-    'actor': function( elem, per, pos ){
-        elem.css( 'transform', 'translate(0,-' + pos + 'px)' );
+    'actor': function( elem, m, per, pos ){
+        m.dy = -pos;
     }
 });
 
 skr.plugin({
     'name': 'rotate',
     'init': function( elem, sang, eang, len ){
-        elem.css( 'transform', 'rotate(' + sang + 'deg)' );
+        //elem.css( 'transform', 'rotate(' + sang + 'deg)' );
         return len;
     },
-    'actor': function( elem, per, pos, sang, eang ){
-        elem.css( 'transform', 'rotate(' + ( sang + ( eang - sang ) * per ) + 'deg)' );
+    'actor': function( elem, m, per, pos, sang, eang ){
+        m.r = sang + ( eang - sang ) * per;
+        //elem.css( 'transform', 'rotate(' +  + 'deg)' );
     }
 });
 
@@ -236,9 +275,9 @@ skr.plugin({
                 r_px = /px$/;
 
             if( x.search( r_p ) != -1 )
-                return [ x.replace( r_p,  '' ), '%' ];
+                return [ parseFloat( x.replace( r_p,  '' ) ), '%' ];
 
-            return [ x.replace( r_px, '' ), 'px' ];
+            return [ parseFloat( x.replace( r_px, '' ) ), 'px' ];
         }
 
         this.dx_dy = [ unit( dx_dy[ 0 ] ),
@@ -246,9 +285,17 @@ skr.plugin({
         return len;
     },
     // here we don't use "dx_dy" and "len" options, we use parsed "this.dx_dy"
-    'actor': function( elem, per, pos ){
-        elem.css( 'transform', 'translate(' + this.dx_dy[ 0 ][ 0 ] * per + this.dx_dy[ 0 ][ 1 ] + ','
-                                            + this.dx_dy[ 1 ][ 0 ] * per + this.dx_dy[ 1 ][ 1 ] + ')' );
+    'actor': function( elem, m, per, pos ){
+        if( this.dx_dy[ 0 ][ 0 ] ) {
+            m.dx = this.dx_dy[ 0 ][ 0 ] * per;
+            m.ux = this.dx_dy[ 0 ][ 1 ];
+        }
+        if( this.dx_dy[ 1 ][ 0 ] ) {
+            m.dy = this.dx_dy[ 1 ][ 0 ] * per;
+            m.uy = this.dx_dy[ 1 ][ 1 ];
+        }
+        //elem.css( 'transform', 'translate(' + this.dx_dy[ 0 ][ 0 ] * per + this.dx_dy[ 0 ][ 1 ] + ','
+        //                                    + this.dx_dy[ 1 ][ 0 ] * per + this.dx_dy[ 1 ][ 1 ] + ')' );
     }
 });
 
@@ -258,7 +305,7 @@ skr.plugin({
         elem.css( 'opacity', sop );
         return len;
     },
-    'actor': function( elem, per, pos, sop, eop ){
+    'actor': function( elem, m, per, pos, sop, eop ){
         elem.css( 'opacity', sop + ( eop - sop ) * per );
     },
 });
@@ -268,7 +315,7 @@ skr.plugin({
     'init': function( elem ){
         return elem[ 0 ];
     },
-    'actor': function( elem, per, pos ){
+    'actor': function( elem, m, per, pos ){
         // no action
     },
 });
