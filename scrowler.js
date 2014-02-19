@@ -210,8 +210,8 @@ Skr.prototype.burn = function(){
     {
         var m = Anim._morphs[ i ];
         var tmp = '';
-        if( m.dx !== null ) tmp += 'translateX(' + m.dx + m.ux + ') ';
-        if( m.dy !== null ) tmp += 'translateY(' + m.dy + m.uy + ') ';
+        if( m.dx !== null ) tmp += 'translateX(' + Math.round(m.dx) + m.ux + ') ';
+        if( m.dy !== null ) tmp += 'translateY(' + Math.round(m.dy) + m.uy + ') ';
         if( m.r  !== null ) tmp += 'rotate(' + m.r + 'deg) ';
         if( m.s  !== null ) tmp += 'scale(' + m.s + ') ';
 
