@@ -60,13 +60,35 @@ Parallel.prototype.len = function( pos ) {
 }
 
 function Anim( sel, elem, name, init, actor, args ){
-    this._sel = sel;    // original jquery selector in form of string (for locks)
     this._elem = elem;  // animated element returned by $(sel)
     this._name = name;  // .. plugin name, also for locks
     this._actor = actor;
     this._init = init;
     this._args = args;
     this._sync = false;
+
+    function XPath(elem) {
+        if( elem.id !== '' )
+            return 'id("'+elem.id+'")';
+        if( elem === document.body )
+            return elem.tagName;
+
+        var ix = 0;
+        var cs = elem.parentNode.childNodes;
+        for( var i= 0; i < cs.length; i++ ) {
+            var c = cs[i];
+            if( c === elem )
+                return XPath( elem.parentNode ) + '/' + elem.tagName + '[' +(ix+1) + ']';
+            if( c.nodeType === 1 && c.tagName === elem.tagName )
+                ix++;
+        }
+    }
+
+    /// convert DOM and jquery objects to XPath (this._sel must be string
+    if( typeof sel === 'object' )
+        sel = XPath($(sel)[0]);
+
+    this._sel = sel;
 
     /*
      * Create morph in central 'cache'.
@@ -265,21 +287,24 @@ skr.plugin({
     }
 });
 
+/*
+ * Function to extract value and units from string.
+ * TODO: move this to Scrowler class ?
+ */
+function unit( x ){
+    x = x.toString();
+    var r_p = /%$/,
+        r_px = /px$/;
+
+    if( x.search( r_p ) != -1 )
+        return [ parseFloat( x.replace( r_p,  '' ) ), '%' ];
+
+    return [ parseFloat( x.replace( r_px, '' ) ), 'px' ];
+}
+
 skr.plugin({
     'name': 'move',
     'init': function( elem, dx_dy, len ){
-
-        function unit( x ){
-            x = x.toString();
-            var r_p = /%$/,
-                r_px = /px$/;
-
-            if( x.search( r_p ) != -1 )
-                return [ parseFloat( x.replace( r_p,  '' ) ), '%' ];
-
-            return [ parseFloat( x.replace( r_px, '' ) ), 'px' ];
-        }
-
         this.dx_dy = [ unit( dx_dy[ 0 ] ),
                        unit( dx_dy[ 1 ] ) ];  // save parsed deltas
         return len;
@@ -296,6 +321,40 @@ skr.plugin({
         }
         //elem.css( 'transform', 'translate(' + this.dx_dy[ 0 ][ 0 ] * per + this.dx_dy[ 0 ][ 1 ] + ','
         //                                    + this.dx_dy[ 1 ][ 0 ] * per + this.dx_dy[ 1 ][ 1 ] + ')' );
+    }
+});
+
+skr.plugin({
+    'name': 'move_x',
+    'init': function( elem, s, e, len ){
+        this.s = unit( s );
+        this.e = unit( e );
+
+        if( this.s[ 1 ] != this.e[ 1 ] )
+            throw 'Start and end values have different units';
+
+        return len;
+    },
+    'actor': function( elem, m, per, pos ){
+        m.dx = this.s[ 0 ] + (this.e[ 0 ] - this.s[ 0 ]) * per;
+        m.ux = this.s[ 1 ];   // setup units
+    }
+});
+
+skr.plugin({
+    'name': 'move_y',
+    'init': function( elem, s, e, len ){
+        this.s = unit( s );
+        this.e = unit( e );
+
+        if( this.s[ 1 ] != this.e[ 1 ] )
+            throw 'Start and end values have different units';
+
+        return len;
+    },
+    'actor': function( elem, m, per, pos ){
+        m.dy = this.s[ 0 ] + (this.e[ 0 ] - this.s[ 0 ]) * per;
+        m.uy = this.s[ 1 ];   // setup units
     }
 });
 
