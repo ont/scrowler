@@ -48,14 +48,14 @@
             height: 0;
             border-left: 50px solid transparent;
             border-right: 50px solid transparent;
-            border-top: 100px solid rgba( 255, 255, 255, 0.5 );
+            border-top: 100px solid white;
         }
         .pentagon{
             position: relative;
             width: 54px;
             border-width: 50px 18px 0;
             border-style: solid;
-            border-color: rgba( 255, 255, 255, 0.5 ) transparent;
+            border-color: white transparent;
         }
         .pentagon:before{
             content: "";
@@ -66,13 +66,13 @@
             top: -85px;
             border-width: 0 45px 35px;
             border-style: solid;
-            border-color: transparent transparent rgba( 255, 255, 255, 0.5 );
+            border-color: transparent transparent white;
         }
         .hexagon{
             position: relative;
             width: 100px;
             height: 55px;
-            background: rgba( 255, 255, 255, 0.5 )
+            background: white
         }
         .hexagon:before{
             position: absolute;
@@ -82,7 +82,7 @@
             height: 0;
             border-left: 50px solid transparent;
             border-right: 50px solid transparent;
-            border-bottom: 25px solid rgba( 255, 255, 255, 0.5 );
+            border-bottom: 25px solid white;
             content: ""
         }
         .hexagon:after{
@@ -93,8 +93,11 @@
             height: 0;
             border-left: 50px solid transparent;
             border-right: 50px solid transparent;
-            border-top: 25px solid rgba( 255, 255, 255, 0.5 );
+            border-top: 25px solid white;
             content: ""
+        }
+        .triangle, .pentagon, .hexagon{
+            z-index: 9999
         }
     </style>
 </head>
@@ -122,10 +125,14 @@
                 skr.parallel([
                     skr.slide( '#section1' ),
                     skr.rotate( '#section1 > .hexagon', 0, 360, win_h ),
-                    skr.move( '#section0 > .pentagon', [ '500%', 0 ], win_h ),
+                    skr.move( '#section0 > .pentagon', [ '500%', '-500%' ], win_h ),
+                    skr.rotate( '#section0 > .pentagon', 0, 180, win_h ),
                 ]),
                 skr.delay( 200 ),
-                skr.slide( '#section2' ),
+                skr.parallel([
+                    skr.slide( '#section2' ),
+                    skr.move( '#section0 > .pentagon', [ '200%', '200%' ], win_h ),
+                ]),
             ]);
             $( 'body' ).css( 'height', skr.tree.len() + win_h );
             $( window ).on( 'scroll', function(){

@@ -66,19 +66,20 @@ function Anim( sel, elem, name, init, actor, args ){
     this._init = init;
     this._args = args;
     this._sync = false;
+    this._morph = {};
 
-    function XPath(elem) {
+    function XPath( elem ){
         if( elem.id !== '' )
-            return 'id("'+elem.id+'")';
+            return 'id("' + elem.id + '")';
         if( elem === document.body )
             return elem.tagName;
 
-        var ix = 0;
-        var cs = elem.parentNode.childNodes;
-        for( var i= 0; i < cs.length; i++ ) {
-            var c = cs[i];
+        var ix = 0,
+            cs = elem.parentNode.childNodes;
+        for( var i= 0; i < cs.length; i++ ){
+            var c = cs[ i ];
             if( c === elem )
-                return XPath( elem.parentNode ) + '/' + elem.tagName + '[' +(ix+1) + ']';
+                return XPath( elem.parentNode ) + '/' + elem.tagName + '[' + ( ix + 1 ) + ']';
             if( c.nodeType === 1 && c.tagName === elem.tagName )
                 ix++;
         }
@@ -86,31 +87,31 @@ function Anim( sel, elem, name, init, actor, args ){
 
     /// convert DOM and jquery objects to XPath (this._sel must be string
     if( typeof sel === 'object' )
-        sel = XPath($(sel)[0]);
+        sel = XPath( $( sel )[ 0 ] );
 
     this._sel = sel;
+    Anim._dom[ this._sel ] = elem;
 
-    /*
-     * Create morph in central 'cache'.
-     * Morphs are special subcache objectects for CSS 'transform' property.
-     * Different plugins can change this obj to achieve complex animation.
-     */
-    if( Anim._morphs[ sel ] === undefined )
-        Anim._morphs[ sel ] = {
-            ux: 'px',      // units for translations
-            uy: 'px',      // ..
-            dx: null,      // translation delta (null indicates nontouched property)
-            dy: null,      // ..
-            r: null,       // rotation (always in degree)
-            s: null,       // scale
-            e: this._elem  // element to animate (used by Scrowler class)
-        };
 }
 
+Anim._dom = {};     // cache of {selector -> DOM element} binds
 Anim._morphs = {};  // cache of morphs
 
 Anim.prototype.init = function(){
     this._len = this._init.apply( this, this._args );
+    /*
+     * Create morph object for dealing with CSS 'transform' property — it
+     * doesn't have separate properties, like transform-rotate, which could be
+     * animated independently.
+     */
+    this._morph = {
+        ux: 'px',  // units for translations
+        uy: 'px',  // ..
+        dx: null,  // translation delta (null indicates nontouched property)
+        dy: null,  // ..
+        r: null,   // rotation (always in degree)
+        s: null,   // scale
+    };
     return this;
 }
 
@@ -147,15 +148,32 @@ Anim.prototype.animate = function( pos ){
 
     // form data to actor (position data + setup data)
     var args = [
-        this._args[ 0 ],             // element to animate
-        Anim._morphs[ this._sel ],   // special obj for CSS 'transform' property
-        delta / this._len,           // percent of animation
-        delta                        // current position in animation in px
+        this._args[ 0 ],    // element to animate
+        this._morph,        // special object for CSS 'transform' property
+        delta / this._len,  // percent of animation
+        delta               // current position in animation in px
     ].concat( this._args.slice( 1 ) ); // .. and append this data to setup options
 
     this._actor.apply( this, args );
+    this.bake();
 
     return delta;
+}
+
+/*
+ * Bake morphs into CSS 'transform' property values
+ */
+Anim.prototype.bake = function(){
+    if( ! Anim._morphs[ this._sel ] )
+        Anim._morphs[ this._sel ] = [];
+
+    var tmp = '';
+    if( this._morph.dx ) tmp += 'translateX(' + Math.round( this._morph.dx ) + this._morph.ux + ')';
+    if( this._morph.dy ) tmp += 'translateY(' + Math.round( this._morph.dy ) + this._morph.uy + ')';
+    if( this._morph.r  ) tmp += 'rotate(' + Math.round( this._morph.r ) + 'deg)';
+    if( this._morph.s  ) tmp += 'scale(' + Math.round( this._morph.s ) + ')';
+
+    Anim._morphs[ this._sel ].push( tmp );
 }
 
 Anim.prototype.len = function(){
@@ -184,8 +202,8 @@ Skr.prototype.plugin = function( plug ){
         // arguments == ['selector', opt1, opt2, opt3]
         // args == [elem, opt1, opt2, opt3]
         //
-        var args = [ elem ].concat( Array.prototype.slice.call( arguments, 1 ) );
-        var anim = new Anim( sel, elem, plug.name, plug.init, plug.actor, args );
+        var args = [ elem ].concat( Array.prototype.slice.call( arguments, 1 ) ),
+            anim = new Anim( sel, elem, plug.name, plug.init, plug.actor, args );
 
         //
         // set smooth animation
@@ -203,23 +221,6 @@ Skr.prototype.plugin = function( plug ){
 };
 
 /*
- * Burn all morphs under all elems into CSS 'transform'
- */
-Skr.prototype.burn = function(){
-    for( var i in Anim._morphs )
-    {
-        var m = Anim._morphs[ i ];
-        var tmp = '';
-        if( m.dx !== null ) tmp += 'translateX(' + Math.round(m.dx) + m.ux + ') ';
-        if( m.dy !== null ) tmp += 'translateY(' + Math.round(m.dy) + m.uy + ') ';
-        if( m.r  !== null ) tmp += 'rotate(' + m.r + 'deg) ';
-        if( m.s  !== null ) tmp += 'scale(' + m.s + ') ';
-
-        m.e.css( 'transform', tmp );
-    }
-}
-
-/*
  * Animate all actors one by one
  */
 Skr.prototype.queue = function( acts ){
@@ -229,7 +230,7 @@ Skr.prototype.queue = function( acts ){
 };
 
 /*
- * Animate all actors simultaneously
+ * Animate all actors independently
  */
 Skr.prototype.parallel = function( acts ){
     var frame = new Parallel( acts );
@@ -242,8 +243,10 @@ Skr.prototype.parallel = function( acts ){
  */
 Skr.prototype.animate = function( pos ){
     Anim._locks = {};          // remove all locks
+    Anim._morphs = {};         // reset all transformations
     this.tree.animate( pos );  // animate to target position
-    this.burn();               // burn all morphs into CSS
+    for( var i in Anim._morphs )
+        Anim._dom[ i ].css( "transform", Anim._morphs[ i ].join( " " ) );
 };
 
 var skr = new Skr();
