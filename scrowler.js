@@ -168,10 +168,10 @@ Anim.prototype.bake = function(){
         Anim._morphs[ this._sel ] = [];
 
     var tmp = '';
-    if( this._morph.dx ) tmp += 'translateX(' + Math.round( this._morph.dx ) + this._morph.ux + ')';
-    if( this._morph.dy ) tmp += 'translateY(' + Math.round( this._morph.dy ) + this._morph.uy + ')';
-    if( this._morph.r  ) tmp += 'rotate(' + Math.round( this._morph.r ) + 'deg)';
-    if( this._morph.s  ) tmp += 'scale(' + Math.round( this._morph.s ) + ')';
+    if( this._morph.dx != null ) tmp += 'translateX(' + Math.round( this._morph.dx ) + this._morph.ux + ') ';
+    if( this._morph.dy != null ) tmp += 'translateY(' + Math.round( this._morph.dy ) + this._morph.uy + ') ';
+    if( this._morph.r  != null ) tmp += 'rotate(' + Math.round( this._morph.r ) + 'deg) ';
+    if( this._morph.s  != null ) tmp += 'scale(' + Math.round( this._morph.s ) + ')';
 
     Anim._morphs[ this._sel ].push( tmp );
 }
