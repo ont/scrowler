@@ -188,6 +188,7 @@ Anim.prototype.sync = function(){
 function Skr(){
     this.tree = null;
     this.conf = null;
+    this.pos = 0;  // last animation position passed to Skr.animate
 }
 
 Skr.prototype.config = function( conf ){
@@ -242,6 +243,10 @@ Skr.prototype.parallel = function( acts ){
  * Animate all frames to the given pos
  */
 Skr.prototype.animate = function( pos ){
+    // call onscroll event listener
+    this.conf.onscroll( pos, pos - this.pos );
+    this.pos = pos;
+
     Anim._locks = {};          // remove all locks
     Anim._morphs = {};         // reset all transformations
     this.tree.animate( pos );  // animate to target position
@@ -249,11 +254,19 @@ Skr.prototype.animate = function( pos ){
         Anim._dom[ i ].css( "transform", Anim._morphs[ i ].join( " " ) );
 };
 
+/*
+ * Syntax sugar for saving handler in config.
+ */
+Skr.prototype.onscroll = function( func ){
+    this.conf.onscroll = func;
+}
+
 var skr = new Skr();
 
 skr.config({
-    'trans_time': 180,       // Transition duration in ms
-    'trans_func': 'ease-out' // Transition timing function
+    'trans_time': 180,         // Transition duration in ms
+    'trans_func': 'ease-out',  // Transition timing function
+    'onscroll': $.noop,        // onscroll listener
 });
 
 skr.plugin({
