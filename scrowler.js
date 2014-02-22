@@ -243,8 +243,9 @@ Skr.prototype.parallel = function( acts ){
  * Animate all frames to the given pos
  */
 Skr.prototype.animate = function( pos ){
-    // call onscroll event listener
-    this.conf.onscroll( pos, pos - this.pos );
+    if( typeof this.conf.onscroll == 'function' )
+        // call onscroll event listener
+        this.conf.onscroll( pos, pos - this.pos );
     this.pos = pos;
 
     Anim._locks = {};          // remove all locks
