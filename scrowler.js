@@ -243,10 +243,9 @@ Skr.prototype.parallel = function( acts ){
  * Animate all frames to the given pos
  */
 Skr.prototype.animate = function( pos ){
-    if( typeof this.conf.onscroll == 'function' )
-        // call onscroll event listener
-        this.conf.onscroll( pos, pos - this.pos );
-    this.pos = pos;
+    // call onscroll event listener
+    this.conf.onscroll( pos, pos - this.pos );
+    this.pos = pos;   // save old pos for onscroll
 
     Anim._locks = {};          // remove all locks
     Anim._morphs = {};         // reset all transformations
@@ -267,7 +266,7 @@ var skr = new Skr();
 skr.config({
     'trans_time': 180,         // Transition duration in ms
     'trans_func': 'ease-out',  // Transition timing function
-    'onscroll': $.noop,        // onscroll listener
+    'onscroll': function(){},  // onscroll listener (no-op by default)
 });
 
 skr.plugin({
