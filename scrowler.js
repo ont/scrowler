@@ -203,8 +203,19 @@ Skr.prototype.plugin = function( plug ){
         // arguments == ['selector', opt1, opt2, opt3]
         // args == [elem, opt1, opt2, opt3]
         //
-        var args = [ elem ].concat( Array.prototype.slice.call( arguments, 1 ) ),
-            anim = new Anim( sel, elem, plug.name, plug.init, plug.actor, args );
+        var args = [ elem ].concat( Array.prototype.slice.call( arguments, 1 ) );
+
+        // pack elem, init and actor to Anim object
+        var anim = new Anim( sel, elem, plug.name, plug.init, plug.actor, args );
+
+        // add custom plugin methods to anim object (they can be called in config)
+        bl = { 'name': true, 'init': true, 'actor': true };  // black list of names
+        for( var name in plug )
+            if( !( name in bl ) )
+                anim[ name ] = function(){
+                    plug[ name ].apply( anim, arguments );
+                    return anim;
+                }
 
         //
         // set smooth animation
@@ -272,6 +283,8 @@ skr.config({
 skr.plugin({
     'name': 'slide',
     'init': function( elem, type ){
+        this.off = 0;  // default top offset of slide
+
         // hiding element
         elem.css( 'position', 'fixed' );
         elem.css( 'top', '100%' );
@@ -287,7 +300,13 @@ skr.plugin({
         return h;
     },
     'actor': function( elem, m, per, pos ){
-        m.dy = -pos;
+        m.dy = this.off - pos;
+    },
+
+    // TODO: declarative vs flexible styles
+    // I.e. this can be changed to {'offset' : offset-default-value}
+    'offset': function( off ){
+        this.off = off;
     }
 });
 
