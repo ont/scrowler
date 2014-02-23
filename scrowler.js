@@ -191,6 +191,43 @@ function Skr(){
     this.pos = 0;  // last animation position passed to Skr.animate
 }
 
+Skr.prototype.func_parse = function( func ){
+    /*
+     * Regular expressions are taken from AngularJS
+     * See: http://stackoverflow.com/questions/1007981/how-to-get-function-parameter-names-values-dynamically-from-javascript
+     */
+    var FN_ARGS = /^(function\s*[^\(]*)\(\s*([^\)]*)\)/m;
+    var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
+    func = func.toString().replace( STRIP_COMMENTS, '' );
+    args = func.match( FN_ARGS )[2];
+    args = args.split( ',' );
+    res = {}
+
+    // parse each arg and extract default value
+    var arg;
+    while( arg = args.pop() ) {
+        if( arg.match('=') ) {
+            var pair = arg.split('=');
+            res[ pair[0].trim() ] = eval( pair[1].trim() );
+        } else {
+            res[ arg.trim() ] = null;
+        }
+    }
+
+    // get keys of array (names of func's args)
+    args = [];
+    for( arg in res )
+        args.push( arg );
+
+    return [
+        // recompile func without default values
+        // see: http://stackoverflow.com/questions/1271516/executing-anonymous-functions-created-using-javascript-eval
+        eval('false||' + func.replace( FN_ARGS, '$1(' + args.join(',') +')' )),
+        // send default values as separate item
+        res
+    ];
+}
+
 Skr.prototype.config = function( conf ){
     if( this.conf )
         for( var name in conf )
@@ -200,6 +237,15 @@ Skr.prototype.config = function( conf ){
 }
 
 Skr.prototype.plugin = function( plug ){
+    var _methods = {};
+
+    // parse custom plugin methods to anim object (they can be called in config)
+    var bl = { 'name': true, 'init': true, 'actor': true };  // black list of names
+    for( var name in plug )
+        if( !( name in bl ) ){
+            _methods[ name ] = this.func_parse( plug[ name ] );
+        }
+
     var init = function( sel ) {
         var elem = $( sel );
 
@@ -212,14 +258,20 @@ Skr.prototype.plugin = function( plug ){
         // pack elem, init and actor to Anim object
         var anim = new Anim( sel, elem, plug.name, plug.init, plug.actor, args );
 
-        // add custom plugin methods to anim object (they can be called in config)
-        bl = { 'name': true, 'init': true, 'actor': true };  // black list of names
-        for( var name in plug )
-            if( !( name in bl ) )
-                anim[ name ] = function(){
-                    plug[ name ].apply( anim, arguments );
-                    return anim;
-                }
+
+        // add parsed custom plugin methods to anim
+        for( var name in _methods ) {
+            // wrap function without default values for args
+            anim[ name ] = function(){
+                _methods[ name ][ 0 ].apply( anim, arguments );
+                return anim;
+            }
+
+            // setup default values for passed args in anim object
+            var defs = _methods[ name ][ 1 ];
+            for( var vname in defs )
+                anim[ vname ] = defs[ vname ];
+        }
 
         //
         // set smooth animation
@@ -287,8 +339,6 @@ skr.config({
 skr.plugin({
     'name': 'slide',
     'init': function( elem, type ){
-        this.off = 0;  // default top offset of slide
-
         // hiding element
         elem.css( 'position', 'fixed' );
         elem.css( 'top', '100%' );
@@ -309,8 +359,9 @@ skr.plugin({
 
     // TODO: declarative vs flexible styles
     // I.e. this can be changed to {'offset' : offset-default-value}
-    'offset': function( off ){
-        this.off = off;
+    // TODO-TODO: remove this.cap = cap because of cap-cap-cap
+    'offset': function( off = 0 ){
+        this.off = off;  // CAP here!!!
     }
 });
 
