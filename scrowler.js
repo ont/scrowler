@@ -192,7 +192,11 @@ function Skr(){
 }
 
 Skr.prototype.config = function( conf ){
-    this.conf = conf;
+    if( this.conf )
+        for( var name in conf )
+            this.conf[ name ] = conf[ name ];
+    else
+        this.conf = conf;
 }
 
 Skr.prototype.plugin = function( plug ){
