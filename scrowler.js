@@ -427,7 +427,7 @@ skr.plugin({
             elem.css( 'top', '0' );
         }
 
-        return h;
+        return h + this.off;
     },
     'actor': function( elem, m, per, pos ){
         m.dy = this.off - pos;
