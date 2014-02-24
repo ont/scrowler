@@ -11,12 +11,43 @@ Queue.prototype.animate = function( pos ){
     return pos;
 }
 
-Queue.prototype.len = function( pos ){
+Queue.prototype.len = function(){
     var s = 0;
     for( var i in this.acts )
         s += this.acts[ i ].len();
     this._len = s;
     return s;
+}
+
+Queue.prototype.bounds = function( s, e ){
+    console.log("Queue >>", s, e);
+    /*
+     * Calculate our real length.
+     * If end bound is passed then we (or out parent is synced)
+     */
+    var _len = ( e ? e - s : this._len );
+
+    for( var i in this.acts ) {
+        var a = this.acts[ i ];
+        if( e )
+            /*
+             * Pass stretched length to childs.
+             * Calculate it as appropriate part of new total _len = (e' - s').
+             *
+             *      s              e
+             * |----########****@@@@----> t   normal animation timeline (e is calculated by Queue)
+             * |----####**@@------------> t   animation timeline when we are synced to (s', e')
+             *      s'     e'
+             *
+             * # * @ -- three child animations
+             *
+             */
+            a.bounds( s, s + a._len * _len / this._len );
+        else
+            a.bounds( s );  // we don't synced, do usual bound calculation
+
+        s += _len * a._len / this._len;  // increase marker by length of (possibly) stretched child
+    }
 }
 
 Queue.prototype.sync = function(){
@@ -27,8 +58,6 @@ Queue.prototype.sync = function(){
 function Parallel( acts ){
     this.acts = acts;
     this._sync = false;
-    this.len();  // calculate this._len
-                 // (to avoid problems when we are root group)
 }
 
 Parallel.prototype.sync = function(){
@@ -42,31 +71,65 @@ Parallel.prototype.animate = function( pos ){
         if( this.acts[ i ]._sync ){
             var k = this.acts[ i ]._len / this._len;
             this.acts[ i ].animate( pos * k );  // do not change "m", one of all _must_ be non-sync
-        }
-        else
+        } else {
             m = Math.max( m, this.acts[ i ].animate( pos ) );
+        }
 
     return m;
 }
 
-Parallel.prototype.len = function( pos ) {
+Parallel.prototype.len = function() {
     this._len = 0;
 
     for( var i in this.acts )
-        if( ! this.acts[ i ]._sync )   // take into account only rigid (non-fluid, non-sync) acts
+        if( !this.acts[ i ]._sync )   // take into account only rigid (non-fluid, non-sync) acts
             this._len = Math.max( this._len, this.acts[ i ].len() );
 
     return this._len;
 }
 
+/*
+ * Calculates bounds for parallel container.
+ * See Queue.prototype.bounds for more info about sync stuff
+ */
+Parallel.prototype.bounds = function( s, e ){
+    console.log("Parallel >>", s, e);
+    var _len = ( e ? e - s : this._len );
+    for( var i in this.acts ) {
+        var a = this.acts[ i ];
+        if( !a._sync )  // child is not synced
+            if( !e ) a.bounds( s );                             // box is not synced
+            else a.bounds( s, s + a._len * _len / this._len );  // box is synced --> child also becomes stretched
+        else
+        {
+            a.bounds( s, s + _len );
+        }
+    }
+}
+
+
 function Anim( sel, elem, name, init, actor, args ){
-    this._elem = elem;  // animated element returned by $(sel)
-    this._name = name;  // .. plugin name, also for locks
-    this._actor = actor;
-    this._init = init;
-    this._args = args;
-    this._sync = false;
-    this._morph = {};
+    this._elem  = elem;     // animated element returned by $(sel)
+    this._name  = name;     // .. plugin name, also for locks
+    this._actor = actor;    // function which animates elem
+    this._init  = init;     // function for preparing elem for animation
+    this._args  = args;     // args which was passed during plugin call (in config tree)
+    this._sync  = false;    // true - this anim is synced to another in parallel box
+    this._len   = null;     // this length of animation
+
+    /*
+     * Create morph object for dealing with CSS 'transform' property — it
+     * doesn't have separate properties, like transform-rotate, which could be
+     * animated independently.
+     */
+    this._morph = {
+        ux: 'px',  // units for translations
+        uy: 'px',  // ..
+        dx: null,  // translation delta (null indicates nontouched property)
+        dy: null,  // ..
+        r: null,   // rotation (always in degree)
+        s: null,   // scale
+    };
 
     function XPath( elem ){
         if( elem.id !== '' )
@@ -99,19 +162,6 @@ Anim._morphs = {};  // cache of morphs
 
 Anim.prototype.init = function(){
     this._len = this._init.apply( this, this._args );
-    /*
-     * Create morph object for dealing with CSS 'transform' property — it
-     * doesn't have separate properties, like transform-rotate, which could be
-     * animated independently.
-     */
-    this._morph = {
-        ux: 'px',  // units for translations
-        uy: 'px',  // ..
-        dx: null,  // translation delta (null indicates nontouched property)
-        dy: null,  // ..
-        r: null,   // rotation (always in degree)
-        s: null,   // scale
-    };
     return this;
 }
 
@@ -164,20 +214,40 @@ Anim.prototype.animate = function( pos ){
  * Bake morphs into CSS 'transform' property values
  */
 Anim.prototype.bake = function(){
-    if( ! Anim._morphs[ this._sel ] )
-        Anim._morphs[ this._sel ] = [];
-
     var tmp = '';
     if( this._morph.dx != null ) tmp += 'translate3d(' + Math.round( this._morph.dx ) + this._morph.ux + ',0,0) ';
     if( this._morph.dy != null ) tmp += 'translate3d(0, ' + Math.round( this._morph.dy ) + this._morph.uy + ',0) ';
     if( this._morph.r  != null ) tmp += 'rotate3d(0,0,1,' + this._morph.r.toFixed( 2 ) + 'deg) ';
     if( this._morph.s  != null ) tmp += 'scale3d(' + this._morph.s.toFixed( 2 ) + ',' + this._morph.s.toFixed( 2 ) + ',1)';
 
-    Anim._morphs[ this._sel ].push( tmp );
+    // touch CSS only if tmp is not empty
+    if( tmp ) {
+        if( ! Anim._morphs[ this._sel ] )
+            Anim._morphs[ this._sel ] = [];
+        Anim._morphs[ this._sel ].push( tmp );
+    }
 }
 
-Anim.prototype.len = function(){
+Anim.prototype.len = function( pos ){
+    if( !this._len )
+        this.init();  // prepare DOM and calculate animation length
+
     return this._len;
+}
+
+/*
+ * Calculates and saves bounds for Anim node.
+ * See Queue.prototype.bounds for more info about sync stuff
+ */
+Anim.prototype.bounds = function( s, e ){
+    if( !this._len )
+        this.init();  // We still can be not prepared.
+                      // If Anim._sync = true then Parallel doesn't call our Anim.len).
+
+    console.log("Anim >>", s, e, this._sync, this._len);
+    this._start = s;                      // save start position of our animation
+    this._end = (e ? e : s + this._len);  // if we are synced then save actual end position
+    console.log(this._elem, this._start, this._end);
 }
 
 Anim.prototype.sync = function(){
@@ -189,6 +259,12 @@ function Skr(){
     this.tree = null;
     this.conf = null;
     this.pos = 0;  // last animation position passed to Skr.animate
+}
+
+Skr.prototype.len = function(){
+    var len = this.tree.len( 0 ) + $(window).height();
+    this.tree.bounds(0);  // calculate _start and _end for each Anim
+    return len;
 }
 
 Skr.prototype.func_parse = function( func ){
@@ -283,7 +359,7 @@ Skr.prototype.plugin = function( plug ){
                     this.conf.trans_time + 'ms ' +
                     this.conf.trans_func + ' 0ms' );
 
-        return anim.init();
+        return anim;  // return anim obj which will be injected in config tree
     }
     skr[ plug.name ] = init;
 };
@@ -466,5 +542,18 @@ skr.plugin({
     },
     'actor': function( elem, m, per, pos ){
         // no action
+    },
+});
+
+skr.plugin({
+    'name': 'class',
+    'init': function( elem ){
+        return 1;
+    },
+    'actor': function( elem, m, per, pos, klass ){
+        if( pos )
+            elem.addClass( klass );
+        else
+            elem.removeClass( klass );
     },
 });
