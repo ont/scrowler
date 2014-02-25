@@ -157,6 +157,7 @@ function Anim( sel, elem, name, init, actor, args ){
 
 }
 
+//Anim._iscroll = 0;  // global iscroll offset
 Anim._dom = {};     // cache of {selector -> DOM element} binds
 Anim._morphs = {};  // cache of morphs
 
@@ -223,6 +224,7 @@ Anim.prototype.bake = function(){
     // touch CSS only if tmp is not empty
     if( tmp ) {
         if( ! Anim._morphs[ this._sel ] )
+            //Anim._morphs[ this._sel ] = ['translate3d(0,' + Anim._iscroll + 'px,0)'];
             Anim._morphs[ this._sel ] = [];
         Anim._morphs[ this._sel ].push( tmp );
     }
@@ -386,6 +388,8 @@ Skr.prototype.parallel = function( acts ){
  * Animate all frames to the given pos
  */
 Skr.prototype.animate = function( pos ){
+    //Anim._iscroll = pos;
+
     // call onscroll event listener
     this.conf.onscroll( pos, pos - this.pos );
     this.pos = pos;   // save old pos for onscroll
@@ -415,6 +419,7 @@ skr.config({
 skr.plugin({
     'name': 'slide',
     'init': function( elem, type ){
+        this.off = 0;
         // hiding element
         elem.css( 'position', 'fixed' );
         elem.css( 'top', '100%' );
@@ -436,9 +441,9 @@ skr.plugin({
     // TODO: declarative vs flexible styles
     // I.e. this can be changed to {'offset' : offset-default-value}
     // TODO-TODO: remove this.cap = cap because of cap-cap-cap
-    'offset': function( off = 0 ){
-        this.off = off;  // CAP here!!!
-    }
+    //'offset': function( off = 0 ){
+    //    this.off = off;  // CAP here!!!
+    //}
 });
 
 skr.plugin({
@@ -555,5 +560,18 @@ skr.plugin({
             elem.addClass( klass );
         else
             elem.removeClass( klass );
+    },
+});
+
+skr.plugin({
+    'name': 'hash',
+    'init': function( elem ){
+        $(window).on('hashchange', function( e ){
+            console.log("here", e);
+            return false;
+        });
+        return 0;
+    },
+    'actor': function( elem ){
     },
 });
