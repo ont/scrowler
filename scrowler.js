@@ -66,6 +66,7 @@ Parallel.prototype.sync = function(){
 }
 
 Parallel.prototype.animate = function( pos ){
+    //console.log($(window).scrollTop());
     var m = 0;
     for( var i in this.acts )
         if( this.acts[ i ]._sync ){
