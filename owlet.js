@@ -1,7 +1,7 @@
 /*! iScroll v5.1.1 ~ (c) 2008-2014 Matteo Spinelli ~ http://cubiq.org/license */
 /*! Owlet   v1.0   ~ (c) 2014      Matteo Spinelli ~ http://github.com/ont/scrowler */
 
-(function (window, document, Math) {
+(function (window, document, Math, skr) {
 var rAF = window.requestAnimationFrame	||
 	window.webkitRequestAnimationFrame	||
 	window.mozRequestAnimationFrame		||
@@ -213,7 +213,7 @@ var utils = (function () {
 	return me;
 })();
 
-function Owlet (el, options) {
+function IScroll (el, options) {
 	this.wrapper = typeof el == 'string' ? document.querySelector(el) : el;
 	this.scroller = this.wrapper.children[0];
 	this.scrollerStyle = this.scroller.style;		// cache style for better performance
@@ -287,7 +287,7 @@ function Owlet (el, options) {
 	this.enable();
 }
 
-Owlet.prototype = {
+IScroll.prototype = {
 	version: '5.1.1',
 
 	_init: function () {
@@ -799,12 +799,61 @@ Owlet.prototype = {
 		}
 	}
 };
-Owlet.utils = utils;
+IScroll.utils = utils;
 
 if ( typeof module != 'undefined' && module.exports ) {
-	module.exports = Owlet;
+	module.exports.IScroll = IScroll;
+	module.exports.Owlet = Owlet;
 } else {
+	window.IScroll = IScroll;
 	window.Owlet = Owlet;
 }
 
-})(window, document, Math);
+function Owlet(){
+    this.opos = null; // old position
+}
+
+Owlet.prototype.run = function( el, options ) {
+    /*
+     * TODO: Take from Modernizr
+     * See: https://github.com/Modernizr/Modernizr/blob/master/feature-detects/touchevents.js#L41
+     */
+    var hasTouch = IScroll.utils.hasTouch;
+    var $body = $(el).children(':first');
+    var len = skr.len();
+
+    if( hasTouch ) {
+        $body.height( len );
+        this.iscroll = new IScroll( el, options );
+
+        this.loop();
+    } else {
+        $('body').height( len );
+        $(window).scroll(function(e){
+            skr.animate( $(window).scrollTop() );
+        });
+        $(window).scroll();  // fire DOM animation via scrowler
+    }
+}
+
+Owlet.prototype.loop = function() {
+    var that = this;
+    function _loop() {
+        rAF( _loop );
+        that.update();
+    }
+    _loop();
+}
+
+
+Owlet.prototype.update = function() {
+    var pos = this.iscroll.getComputedPosition();
+    if( pos.y != this.opos ) {
+        skr.animate( -pos.y );
+        this.opos = pos.y;
+    }
+}
+
+})(window, document, Math, skr);
+
+var owlet = new Owlet();
