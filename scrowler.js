@@ -82,9 +82,11 @@ Parallel.prototype.animate = function( pos ){
 Parallel.prototype.len = function() {
     this._len = 0;
 
-    for( var i in this.acts )
-        if( !this.acts[ i ]._sync )   // take into account only rigid (non-fluid, non-sync) acts
-            this._len = Math.max( this._len, this.acts[ i ].len() );
+    for( var i in this.acts ) {
+        var len = this.acts[ i ].len();  // always call len() calculation process
+        if( !this.acts[ i ]._sync )      // .. but take into account only rigid (non-fluid, non-sync) acts
+            this._len = Math.max( this._len, len );
+    }
 
     return this._len;
 }
@@ -243,9 +245,9 @@ Anim.prototype.len = function( pos ){
  * See Queue.prototype.bounds for more info about sync stuff
  */
 Anim.prototype.bounds = function( s, e ){
-    if( !this._len )
-        this.init();  // We still can be not prepared.
-                      // If Anim._sync = true then Parallel doesn't call our Anim.len).
+    //if( !this._len )
+    //    this.init();  // We still can be not prepared.
+    //                  // If Anim._sync = true then Parallel doesn't call our Anim.len).
 
     console.log("Anim >>", s, e, this._sync, this._len);
     this._start = s;                      // save start position of our animation
@@ -420,23 +422,23 @@ skr.config({
 skr.plugin({
     'name': 'slide',
     'init': function( elem, type ){
-        this.off = 0;
         // hiding element
         elem.css( 'position', 'fixed' );
         elem.css( 'top', '100%' );
         elem.css( 'height', $( window ).height() );
 
-        var h = elem.outerHeight();
+        this.h = elem.outerHeight();
 
         if( type == 'first' ){
-            h -= $( window ).height();
+            this.h -= $( window ).height();
             elem.css( 'top', '0' );
         }
 
-        return h + this.off;
+        this.off = 400;
+        return this.h + this.off;
     },
     'actor': function( elem, m, per, pos ){
-        m.dy = this.off - pos;
+        m.dy = Math.max( -pos, -this.h );
     },
 
     // TODO: declarative vs flexible styles
