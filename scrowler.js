@@ -452,12 +452,29 @@ skr.plugin({
 skr.plugin({
     'name': 'rotate',
     'init': function( elem, sang, eang, len ){
-        //elem.css( 'transform', 'rotate(' + sang + 'deg)' );
         return len;
     },
     'actor': function( elem, m, per, pos, sang, eang ){
         m.r = sang + ( eang - sang ) * per;
-        //elem.css( 'transform', 'rotate(' +  + 'deg)' );
+    }
+});
+
+skr.plugin({
+    'name': 'pin',
+    'init': function( elem, pos, len, baseline ){
+        this.p = pos;
+
+        this.bl = 0;
+        if( baseline == 'center' )
+            this.bl = elem.outerHeight() / 2 | 0;
+        if( baseline == 'bottom' )
+            this.bl = elem.outerHeight();
+
+        return len;
+    },
+    'actor': function( elem, m, per, pos ){
+        if( pos > this.p + this.bl )
+            m.dy = pos - this.p - this.bl;
     }
 });
 
