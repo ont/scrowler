@@ -478,6 +478,16 @@ skr.plugin({
     }
 });
 
+skr.plugin({
+    'name': 'scale',
+    'init': function( elem, sscl, escl, len ){
+        return len;
+    },
+    'actor': function( elem, m, per, pos, sscl, escl ){
+        m.s = sscl + ( escl - sscl ) * per;
+    }
+});
+
 /*
  * Function to extract value and units from string.
  * TODO: move this to Scrowler class ?
