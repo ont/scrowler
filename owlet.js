@@ -810,7 +810,8 @@ if ( typeof module != 'undefined' && module.exports ) {
 }
 
 function Owlet(){
-    this.opos = null; // old position
+    this.opos = null;     // old position
+    this.iscroll = null;  // scroller for iPad (yes, I am cap)
 }
 
 Owlet.prototype.run = function( el, options ) {
@@ -821,19 +822,25 @@ Owlet.prototype.run = function( el, options ) {
     var hasTouch = IScroll.utils.hasTouch;
     var $body = $(el).children(':first');
     var len = skr.len();
+    var that = this;
 
+    //hasTouch = true;
     if( hasTouch ) {
         $body.height( len );
-        this.iscroll = new IScroll( el, options );
-
-        this.loop();
+        if( !this.iscroll ) {
+            this.iscroll = new IScroll( el, options );
+            this.loop();
+        }
     } else {
         $('body').height( len );
         $(window).scroll(function(e){
             skr.animate( $(window).scrollTop() );
+            that.hash();
         });
         $(window).scroll();  // fire DOM animation via scrowler
     }
+
+    $(window).trigger('hashchange');  // jump at right position after startup
 }
 
 Owlet.prototype.loop = function() {
@@ -845,12 +852,51 @@ Owlet.prototype.loop = function() {
     _loop();
 }
 
-
 Owlet.prototype.update = function() {
     var pos = this.iscroll.getComputedPosition();
     if( pos.y != this.opos ) {
         skr.animate( -pos.y );
         this.opos = pos.y;
+        this.hash();
+    }
+}
+
+/*
+ * Move real scrollTop ore iscroll virtual position to desired position.
+ */
+Owlet.prototype.scroll = function( pos ) {
+    // avoid this jumping fired by plugin, because hash was chaged by us
+    if( this._hash_changing ) {
+        console.log("jump to ", pos, "was ignored");
+        this._hash_changing = false;  // reset flag
+        return;                       // go away
+    }
+    console.log("jump to ", pos);
+
+    var hasTouch = IScroll.utils.hasTouch;
+    if( hasTouch ) {
+        this.iscroll.scrollTo( 0, -pos );
+    } else {
+        $(window).scrollTop( pos );
+    }
+}
+
+/*
+ * Function to manually change hash without jumping to it.
+ * All calls from scrowler plugins are chached.
+ * When called wilthout args this function will change url hash and
+ * set special flag _hash_changing for avoiding real scrowler jumping.
+ */
+Owlet.prototype.hash = function( name ) {
+    if( name )
+        this._hash = name;
+    else {
+        if( this.ohash != this._hash ) {
+            console.log('setted --', this._hash, ' ohash was ', this.ohash);
+            window.location.hash = this._hash;
+            this._hash_changing = true;
+            this.ohash = this._hash;
+        }
     }
 }
 

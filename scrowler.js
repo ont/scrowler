@@ -329,6 +329,7 @@ Skr.prototype.plugin = function( plug ){
 
     var init = function( sel ) {
         var elem = $( sel );
+        elem._selector = sel;  // save selector for later usage
 
         //
         // arguments == ['selector', opt1, opt2, opt3]
@@ -596,12 +597,26 @@ skr.plugin({
 skr.plugin({
     'name': 'hash',
     'init': function( elem ){
-        $(window).on('hashchange', function( e ){
-            console.log("here", e);
+        var that = this;
+        this.name = elem._selector;
+
+        function test(){
+            console.log("testing", window.location.hash);
+            if( window.location.hash == that.name ) {
+                console.log("wow, we are equal", that.name);
+                owlet.scroll( that._end );  // try to jump to hash (this jump possibly can be ignored by owlet)
+            }
             return false;
-        });
-        return 0;
+        }
+
+        $(window).on('hashchange', test);
+
+        return 1;
     },
-    'actor': function( elem ){
+    'actor': function( elem, m, per, pos ){
+        if( pos ) {
+            console.log("setting without jump", this.name);
+            owlet.hash(this.name);  // set hash without jumping to it
+        }
     },
 });
