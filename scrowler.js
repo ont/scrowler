@@ -596,15 +596,20 @@ skr.plugin({
 
 skr.plugin({
     'name': 'hash',
-    'init': function( elem ){
+    'init': function( elem, offset ){
         var that = this;
         this.name = elem._selector;
 
+        // setup helper offset
+        this.offset = 0;
+        if( offset == '+window' )
+            this.offset = $(window).height();
+
         function test(){
-            console.log("testing", window.location.hash);
+            //console.log("testing", window.location.hash);
             if( window.location.hash == that.name ) {
-                console.log("wow, we are equal", that.name);
-                owlet.scroll( that._end );  // try to jump to hash (this jump possibly can be ignored by owlet)
+                //console.log("wow, we are equal", that.name);
+                owlet.scroll( that._end + that.offset );  // try to jump to hash (this jump possibly can be ignored by owlet)
             }
             return false;
         }
@@ -614,9 +619,9 @@ skr.plugin({
         return 1;
     },
     'actor': function( elem, m, per, pos ){
-        if( pos ) {
-            console.log("setting without jump", this.name);
-            owlet.hash(this.name);  // set hash without jumping to it
-        }
+        //if( pos ) {
+        //    console.log("setting without jump", this.name);
+        //    owlet.hash(this.name);  // set hash without jumping to it
+        //}
     },
 });
