@@ -358,12 +358,12 @@ Skr.prototype.plugin = function( plug ){
         //
         // set smooth animation
         //
-        elem.css( 'transition', 'transform ' +
-                    this.conf.trans_time + 'ms ' +
-                    this.conf.trans_func + ' 0ms' );
-        elem.css( '-webkit-transition', '-webkit-transform ' +
-                    this.conf.trans_time + 'ms ' +
-                    this.conf.trans_func + ' 0ms' );
+        //elem.css( 'transition', 'transform ' +
+        //            this.conf.trans_time + 'ms ' +
+        //            this.conf.trans_func + ' 0ms' );
+        //elem.css( '-webkit-transition', '-webkit-transform ' +
+        //            this.conf.trans_time + 'ms ' +
+        //            this.conf.trans_func + ' 0ms' );
 
         return anim;  // return anim obj which will be injected in config tree
     }
@@ -401,8 +401,38 @@ Skr.prototype.animate = function( pos ){
     Anim._locks = {};          // remove all locks
     Anim._morphs = {};         // reset all transformations
     this.tree.animate( pos );  // animate to target position
-    for( var i in Anim._morphs )
-        Anim._dom[ i ].css( "transform", Anim._morphs[ i ].join( " " ) );
+    for( var i in Anim._morphs ) {
+        var elem = Anim._dom[ i ];
+
+        //elem.css( 'transition', 'none' );
+        //elem.css( '-webkit-transition', 'none' );
+        //elem.height();
+
+        elem.css( "transform", Anim._morphs[ i ].join( " " ) );
+
+        //elem.css( 'transition', 'transform ' +
+        //            this.conf.trans_time + 'ms ' +
+        //            this.conf.trans_func + ' 0ms' );
+        //elem.css( '-webkit-transition', '-webkit-transform ' +
+        //            this.conf.trans_time + 'ms ' +
+        //            this.conf.trans_func + ' 0ms' );
+
+        //var that = this;
+        //function mh(){
+        //    var ii = i;
+        //    var e = elem;
+        //    return function(){
+        //        e.css( "transform", Anim._morphs[ ii ].join( " " ) );
+
+        //        e.css( 'transition', 'transform ' +
+        //                    that.conf.trans_time + 'ms ' +
+        //                    that.conf.trans_func + ' 0ms' );
+        //        e.css( '-webkit-transition', '-webkit-transform ' +
+        //                    that.conf.trans_time + 'ms ' +
+        //                    that.conf.trans_func + ' 0ms' );
+        //    }
+        //}
+    }
 };
 
 /*
@@ -423,23 +453,26 @@ skr.config({
 skr.plugin({
     'name': 'slide',
     'init': function( elem, type ){
-        // hiding element
-        elem.css( 'position', 'fixed' );
-        elem.css( 'top', '100%' );
+        // setup size
         elem.css( 'height', $( window ).height() );
+
+        // hiding element
+        this.off = 100;   // offset in percents for top
+        elem.css( 'position', 'fixed' );
 
         this.h = elem.outerHeight();
 
         if( type == 'first' ){
             this.h -= $( window ).height();
-            elem.css( 'top', '0' );
+            //elem.css( 'top', '0' );
+            this.off = 0;
         }
 
-        this.off = 400;
         return this.h + this.off;
     },
     'actor': function( elem, m, per, pos ){
-        m.dy = Math.max( -pos, -this.h );
+        //m.dy = Math.max( -pos, -this.h );
+        elem.css('top', 'calc(' + this.off + '% - ' + Math.min( pos, this.h ) + 'px)' );
     },
 
     // TODO: declarative vs flexible styles
