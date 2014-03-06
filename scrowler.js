@@ -456,23 +456,40 @@ skr.plugin({
         // setup size
         elem.css( 'height', $( window ).height() );
 
-        // hiding element
-        this.off = 100;   // offset in percents for top
-        elem.css( 'position', 'fixed' );
+        // setup delay
+        this.delay = 200;
+
+        // hide element
+        this.top = 100;                    // offset in percents for top
+        elem.css( 'position', 'fixed' );   // .. relative to window
 
         this.h = elem.outerHeight();
 
         if( type == 'first' ){
-            this.h -= $( window ).height();
-            //elem.css( 'top', '0' );
-            this.off = 0;
+            this.h -= $( window ).height();  // decrease animation length
+            this.top = 0;                    // .. and don't hide first slide
         }
 
-        return this.h + this.off;
+        elem.css( 'top', this.top + '%' );
+
+        // TODO: remove this hack
+        this.degrade = (!Owlet.utils.hasTouch && this.h * $(window).width() > 1280 * 1024);
+
+        // remove any previous transforms from element
+        if( this.degrade )
+            elem.css( 'transform', 'none' );
+        //console.log("hasTouch =", Owlet.utils.hasTouch);
+        //console.log("S =", this.h * $(window).width());
+        //console.log("degrade =", this.degrade);
+
+        return this.h + this.delay;
     },
     'actor': function( elem, m, per, pos ){
         //m.dy = Math.max( -pos, -this.h );
-        elem.css('top', 'calc(' + this.off + '% - ' + Math.min( pos, this.h ) + 'px)' );
+        if( this.degrade )
+            elem.css('top', 'calc(' + this.top + '% - ' + Math.min( pos, this.h ) + 'px)' );
+        else
+            m.dy = Math.max( -pos, -this.h );
     },
 
     // TODO: declarative vs flexible styles

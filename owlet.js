@@ -899,6 +899,7 @@ Owlet.prototype.hash = function( name ) {
         }
     }
 }
+Owlet.utils = utils;
 
 })(window, document, Math, skr);
 
