@@ -810,8 +810,9 @@ if ( typeof module != 'undefined' && module.exports ) {
 }
 
 function Owlet(){
-    this.opos = null;     // old position
-    this.iscroll = null;  // scroller for iPad (yes, I am cap)
+    this.opos = null;      // old position
+    this.iscroll = null;   // scroller for iPad (yes, I am cap)
+    this.jumping = false;  // true -- we are moving to target position
 }
 
 Owlet.prototype.run = function( el, options ) {
@@ -862,16 +863,26 @@ Owlet.prototype.update = function() {
 }
 
 /*
- * Move real scrollTop ore iscroll virtual position to desired position.
+ * Move real scrollTop or iscroll virtual position to desired position.
  */
 Owlet.prototype.scroll = function( pos ) {
+    this.jumping = true;
+
     // avoid this jumping fired by plugin, because hash was chaged by us
     if( this._hash_changing ) {
         console.log("jump to ", pos, "was ignored");
         this._hash_changing = false;  // reset flag
         return;                       // go away
     }
-    console.log("jump to ", pos);
+
+    //var that = this;
+    //
+    //// animation loop
+    //function _loop() {
+    //    rAF( _loop );
+    //    // TODO: do skr.animate + setting scrollTop here
+    //}
+    //_loop();
 
     var hasTouch = IScroll.utils.hasTouch;
     if( hasTouch ) {
@@ -879,6 +890,8 @@ Owlet.prototype.scroll = function( pos ) {
     } else {
         $(window).scrollTop( pos );
     }
+
+    this.jumping = true;
 }
 
 /*

@@ -20,7 +20,7 @@ Queue.prototype.len = function(){
 }
 
 Queue.prototype.bounds = function( s, e ){
-    console.log("Queue >>", s, e);
+    //console.log("Queue >>", s, e);
     /*
      * Calculate our real length.
      * If end bound is passed then we (or out parent is synced)
@@ -96,7 +96,7 @@ Parallel.prototype.len = function() {
  * See Queue.prototype.bounds for more info about sync stuff
  */
 Parallel.prototype.bounds = function( s, e ){
-    console.log("Parallel >>", s, e);
+    //console.log("Parallel >>", s, e);
     var _len = ( e ? e - s : this._len );
     for( var i in this.acts ) {
         var a = this.acts[ i ];
@@ -119,6 +119,9 @@ function Anim( sel, elem, name, init, actor, args ){
     this._args  = args;     // args which was passed during plugin call (in config tree)
     this._sync  = false;    // true - this anim is synced to another in parallel box
     this._len   = null;     // this length of animation
+    this._start = null;     // scroll position when we start
+    this._end   = null;     // scroll position when we finish animation
+    this._snap  = false;    // true - snap to start/end of this animation when we inside it
 
     /*
      * Create morph object for dealing with CSS 'transform' property — it
@@ -249,14 +252,19 @@ Anim.prototype.bounds = function( s, e ){
     //    this.init();  // We still can be not prepared.
     //                  // If Anim._sync = true then Parallel doesn't call our Anim.len).
 
-    console.log("Anim >>", s, e, this._sync, this._len);
+    //console.log("Anim >>", s, e, this._sync, this._len);
     this._start = s;                      // save start position of our animation
     this._end = (e ? e : s + this._len);  // if we are synced then save actual end position
-    console.log(this._elem, this._start, this._end);
+    //console.log(this._elem, this._start, this._end);
 }
 
 Anim.prototype.sync = function(){
     this._sync = true;
+    return this;
+}
+
+Anim.prototype.snap = function(){
+    this._snap = true;
     return this;
 }
 
@@ -454,6 +462,7 @@ skr.plugin({
     'name': 'slide',
     'init': function( elem, type ){
         // setup size
+        //console.log("here", $(window).height());
         elem.css( 'height', $( window ).height() );
 
         // setup delay
