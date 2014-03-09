@@ -834,15 +834,29 @@ Owlet.prototype.run = function( el, options ) {
         }
     } else {
         $('body').height( len );
-        $(window).scroll(function(e){
-            that.scroll( $(window).scrollTop(), true );
-            //skr.animate( $(window).scrollTop() );
-            that.hash();
-        });
+        this._bind();
         $(window).scroll();  // fire DOM animation via scrowler
     }
 
     $(window).trigger('hashchange');  // jump at right position after startup
+}
+
+
+Owlet.prototype._bind = function() {
+    var that = this;
+    if( !this._jscroll )
+        this._jscroll = function() {
+            that.scroll( $(window).scrollTop(), true );
+            //skr.animate( $(window).scrollTop() );
+            that.hash();
+        }
+
+    $(window).bind('scroll', this._jscroll);
+}
+
+
+Owlet.prototype._unbind = function() {
+    $(window).unbind('scroll', this._jscroll);
 }
 
 Owlet.prototype.loop = function() {
@@ -865,13 +879,9 @@ Owlet.prototype.update = function() {
 
 /*
  * Move real scrollTop or iscroll virtual position to desired position.
- *   soft : if true then don't set scrollTop position, only call skr.animate(...)
+ *   soft: if true then don't scrollTop position
  */
 Owlet.prototype.scroll = function( pos, soft ) {
-    // during hard scroll we set scrollTop which recursively call Owlet.scroll
-    if( this.jumping && !this.soft )
-        return;   // avoid recursive calls
-
     // avoid this jumping fired by plugin, because hash was chaged by us
     if( this._hash_changing ) {
         console.log("jump to ", pos, "was ignored");
@@ -881,44 +891,55 @@ Owlet.prototype.scroll = function( pos, soft ) {
 
     var hasTouch = IScroll.utils.hasTouch;
     if( hasTouch ) {
-        this.iscroll.scrollTo( 0, -pos );
+        this.iscroll.scrollTo( 0, -pos, 1000 );
         return;
     }
 
     var that = this;
     // animation loop
     function _loop() {
-        var stamp = +new Date();      // get current timestamp
-        var dt = stamp - that.stamp;  // calculate time delta
-        that.stamp = stamp;
+        //var stamp = +new Date();      // get current timestamp
+        //var dt = stamp - that.stamp;  // calculate time delta
+        //that.stamp = stamp;
 
         //var npos = skr.pos + that.speed * dt;  // calculate new position
-        var npos = skr.pos + ( that.tpos - skr.pos ) * dt / 300;    // calculate new position
+        //var npos = skr.pos + ( that.tpos - skr.pos ) * dt / 150.0;    // calculate new position
+        //function sign(x){
+        //    if( +x === x ) { // check if a number was given
+        //        return (x === 0) ? x : (x > 0) ? 1 : -1;
+        //    }
+        //    return NaN;
+        //}
+        //var speed = sign( that.tpos - skr.pos )/( Math.exp(-Math.abs(skr.pos - that.tpos) / 4)  + 0.005);
+        var speed = ( that.tpos - skr.pos ) / 5;
+        //var npos = skr.pos + speed * dt;
+        var npos = skr.pos + speed;
 
         if( (skr.pos < that.tpos && that.tpos < npos) || (npos < that.tpos && that.tpos < skr.pos) )
             npos = that.tpos;
 
-        if( soft )
-            skr.animate( npos );
-        else {
-            skr.animate( npos );
-            $(window).scrollTop( npos );
-        }
+        skr.animate( npos );
 
         if( Math.abs( npos - that.tpos ) > 1.0 )
             rAF( _loop );
         else {
             //console.log("false");
             that.jumping = false;
+            console.log("finish");
         }
     }
 
-    //if( !this.jumping ) {
+    if( !soft ) {
+        this._unbind();
+        $(window).scrollTop( pos );
+        this._bind();
+    }
+
     this.stamp = +new Date();  // save current timestamp
     this.speed = 1.0*(pos - skr.pos) / skr.conf.trans_time;
     this.tpos = pos;           // save target pos
-    this.soft = soft;          // save type of scroll
     if( !this.jumping ) {
+        console.log("start");
         this.jumping = true;
         _loop();
     }
