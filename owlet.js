@@ -835,7 +835,8 @@ Owlet.prototype.run = function( el, options ) {
     } else {
         $('body').height( len );
         $(window).scroll(function(e){
-            skr.animate( $(window).scrollTop() );
+            that.scroll( $(window).scrollTop(), true );
+            //skr.animate( $(window).scrollTop() );
             that.hash();
         });
         $(window).scroll();  // fire DOM animation via scrowler
@@ -864,8 +865,12 @@ Owlet.prototype.update = function() {
 
 /*
  * Move real scrollTop or iscroll virtual position to desired position.
+ *   soft : if true then don't set scrollTop position, only call skr.animate(...)
  */
-Owlet.prototype.scroll = function( pos ) {
+Owlet.prototype.scroll = function( pos, soft ) {
+    // during hard scroll we set scrollTop which recursively call Owlet.scroll
+    if( this.jumping && !this.soft )
+        return;   // avoid recursive calls
 
     // avoid this jumping fired by plugin, because hash was chaged by us
     if( this._hash_changing ) {
@@ -887,15 +892,20 @@ Owlet.prototype.scroll = function( pos ) {
         var dt = stamp - that.stamp;  // calculate time delta
         that.stamp = stamp;
 
-        // console.log({s: that.speed, dt: dt, skr_pos: skr.pos,  pos: skr.pos + that.speed * dt});
-        //skr.animate( skr.pos + that.speed * dt );
-        var npos = skr.pos + that.speed * dt;  // calculate new position
+        //var npos = skr.pos + that.speed * dt;  // calculate new position
+        var npos = skr.pos + ( that.tpos - skr.pos ) * dt / 300;    // calculate new position
+
         if( (skr.pos < that.tpos && that.tpos < npos) || (npos < that.tpos && that.tpos < skr.pos) )
             npos = that.tpos;
 
-        $(window).scrollTop( npos );
+        if( soft )
+            skr.animate( npos );
+        else {
+            skr.animate( npos );
+            $(window).scrollTop( npos );
+        }
 
-        if( npos != that.tpos )
+        if( Math.abs( npos - that.tpos ) > 1.0 )
             rAF( _loop );
         else {
             //console.log("false");
@@ -905,8 +915,9 @@ Owlet.prototype.scroll = function( pos ) {
 
     //if( !this.jumping ) {
     this.stamp = +new Date();  // save current timestamp
-    this.speed = 1.0*(pos - skr.pos) / 1000;
+    this.speed = 1.0*(pos - skr.pos) / skr.conf.trans_time;
     this.tpos = pos;           // save target pos
+    this.soft = soft;          // save type of scroll
     if( !this.jumping ) {
         this.jumping = true;
         _loop();
