@@ -882,7 +882,7 @@ Owlet.prototype.update = function() {
  * Move real scrollTop or iscroll virtual position to desired position.
  *   soft: if true then don't scrollTop position
  */
-Owlet.prototype.scroll = function( pos, soft ) {
+Owlet.prototype.scroll = function( pos, soft, rate ) {
     // avoid this jumping fired by plugin, because hash was chaged by us
     if( this._hash_changing ) {
         console.log("jump to ", pos, "was ignored");
@@ -914,7 +914,7 @@ Owlet.prototype.scroll = function( pos, soft ) {
         //var speed = sign( that.tpos - skr.pos )/( Math.exp(-Math.abs(skr.pos - that.tpos) / 4)  + 0.005);
         var speed = ( that.tpos - skr.pos ) / 5;
         //var npos = skr.pos + speed * dt;
-        var npos = skr.pos + speed;
+        var npos = skr.pos + speed * that.rate;
 
         if( (skr.pos < that.tpos && that.tpos < npos) || (npos < that.tpos && that.tpos < skr.pos) )
             npos = that.tpos;
@@ -927,7 +927,7 @@ Owlet.prototype.scroll = function( pos, soft ) {
          */
         if( Anim._snap ) {
             console.log("snapping to ", Anim._snap);
-            that.scroll( Anim._snap );
+            that.scroll( Anim._snap, false, 0.5 );  // do hard scroll on low speed
         }
 
         if( Math.abs( npos - that.tpos ) > 1.0 )
@@ -951,7 +951,8 @@ Owlet.prototype.scroll = function( pos, soft ) {
 
     //this.stamp = +new Date();  // save current timestamp
     this.speed = 1.0*(pos - skr.pos) / skr.conf.trans_time;
-    this.tpos = pos;           // save target pos
+    this.tpos = pos;             // save target pos
+    this.rate = ( rate ? rate : 1 );
     if( !this.jumping ) {
         console.log("start");
         this.jumping = true;
