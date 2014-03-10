@@ -1,5 +1,5 @@
 /*! iScroll v5.1.1 ~ (c) 2008-2014 Matteo Spinelli ~ http://cubiq.org/license */
-/*! Owlet   v1.0   ~ (c) 2014      Matteo Spinelli ~ http://github.com/ont/scrowler */
+/*! Owlet   v1.0   ~ (c) 2014      https://github.com/ont/scrowler */
 
 (function (window, document, Math, skr) {
 var rAF = window.requestAnimationFrame	||
@@ -883,6 +883,10 @@ Owlet.prototype.update = function() {
  *   soft: if true then don't scrollTop position
  */
 Owlet.prototype.scroll = function( pos, soft, rate ) {
+    // ignore new hard jumps during already going hard jumps
+    if( this.snap_ignore && !soft )
+        return;
+
     // avoid this jumping fired by plugin, because hash was chaged by us
     if( this._hash_changing ) {
         console.log("jump to ", pos, "was ignored");
@@ -950,6 +954,7 @@ Owlet.prototype.scroll = function( pos, soft, rate ) {
     }
 
     //this.stamp = +new Date();  // save current timestamp
+    console.log("jump to ", pos);
     this.speed = 1.0*(pos - skr.pos) / skr.conf.trans_time;
     this.tpos = pos;             // save target pos
     this.rate = ( rate ? rate : 1 );
