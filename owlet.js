@@ -813,6 +813,7 @@ function Owlet(){
     this.opos = null;      // old position
     this.iscroll = null;   // scroller for iPad (yes, I am cap)
     this.jumping = false;  // true -- we are moving to target position
+    this.snap_ignore = false;  // when we do hard jump this flag is true
 }
 
 Owlet.prototype.run = function( el, options ) {
@@ -920,22 +921,35 @@ Owlet.prototype.scroll = function( pos, soft ) {
 
         skr.animate( npos );
 
+        /*
+         * TODO: owlet knows about them all ???
+         * How about code refactoring?
+         */
+        if( Anim._snap ) {
+            console.log("snapping to ", Anim._snap);
+            that.scroll( Anim._snap );
+        }
+
         if( Math.abs( npos - that.tpos ) > 1.0 )
             rAF( _loop );
         else {
             //console.log("false");
             that.jumping = false;
+            that.snap_ignore = false;  // if we were in hard mode then we can react to snapping again
             console.log("finish");
         }
     }
 
+    // do hard scroll: set scrollTop
     if( !soft ) {
-        this._unbind();
-        $(window).scrollTop( pos );
-        this._bind();
+        this.snap_ignore = true;      // we can't react to snapping during #hash moving
+
+        this._unbind();               // prevent firing new scrollTop events
+        $(window).scrollTop( pos );   // set scrollTop in one go
+        this._bind();                 // bind listener back
     }
 
-    this.stamp = +new Date();  // save current timestamp
+    //this.stamp = +new Date();  // save current timestamp
     this.speed = 1.0*(pos - skr.pos) / skr.conf.trans_time;
     this.tpos = pos;           // save target pos
     if( !this.jumping ) {

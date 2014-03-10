@@ -3,9 +3,9 @@ function Queue( acts ){
     this._sync = false;
 }
 
-Queue.prototype.animate = function( pos ){
+Queue.prototype.animate = function( pos, delta ){
     for( var i in this.acts ){
-        pos -= this.acts[ i ].animate( pos );
+        pos -= this.acts[ i ].animate( pos, delta );
         pos = ( pos < 0 ) ? 0 : pos;
     }
     return pos;
@@ -65,15 +65,15 @@ Parallel.prototype.sync = function(){
     return this;
 }
 
-Parallel.prototype.animate = function( pos ){
+Parallel.prototype.animate = function( pos, delta ){
     //console.log($(window).scrollTop());
     var m = 0;
     for( var i in this.acts )
         if( this.acts[ i ]._sync ){
             var k = this.acts[ i ]._len / this._len;
-            this.acts[ i ].animate( pos * k );  // do not change "m", one of all _must_ be non-sync
+            this.acts[ i ].animate( pos * k, delta );  // do not change "m", one of all _must_ be non-sync
         } else {
-            m = Math.max( m, this.acts[ i ].animate( pos ) );
+            m = Math.max( m, this.acts[ i ].animate( pos, delta ) );
         }
 
     return m;
@@ -172,7 +172,7 @@ Anim.prototype.init = function(){
     return this;
 }
 
-Anim.prototype.animate = function( pos ){
+Anim.prototype.animate = function( pos, delta ){
     /*
      * Animate object at zero pos only if nobody was animated before.
      * Chart of some property of the object during animation:
@@ -201,20 +201,31 @@ Anim.prototype.animate = function( pos ){
     Anim._locks[ this._name ] = locks;
 
 
-    var delta = ( pos > this._len ) ? this._len : pos;
+    var _pos = ( pos > this._len ) ? this._len : pos;
+    var per = _pos / this._len;
 
     // form data to actor (position data + setup data)
     var args = [
         this._args[ 0 ],    // element to animate
         this._morph,        // special object for CSS 'transform' property
-        delta / this._len,  // percent of animation
-        delta               // current position in animation in px
+        per,                // percent of animation
+        _pos               // current position in animation in px
     ].concat( this._args.slice( 1 ) ); // .. and append this data to setup options
 
     this._actor.apply( this, args );
     this.bake();
 
-    return delta;
+    // snap test
+    if( this._snap ) {
+        if( 0.2 < per && per < 0.8 && delta > 0 )
+            Anim._snap = this._end;
+
+        if( 0.2 < per && per < 0.8 && delta < 0 )
+            Anim._snap = this._start;
+    }
+
+
+    return _pos;
 }
 
 /*
@@ -404,11 +415,14 @@ Skr.prototype.animate = function( pos ){
 
     // call onscroll event listener
     this.conf.onscroll( pos, pos - this.pos );
+
+    Anim._locks = {};    // remove all locks
+    Anim._morphs = {};   // reset all transformations
+    Anim._snap = null;   // reset snap position
+
+    this.tree.animate( pos, pos - this.pos );  // animate to target position
     this.pos = pos;   // save old pos for onscroll
 
-    Anim._locks = {};          // remove all locks
-    Anim._morphs = {};         // reset all transformations
-    this.tree.animate( pos );  // animate to target position
     for( var i in Anim._morphs ) {
         var elem = Anim._dom[ i ];
 
