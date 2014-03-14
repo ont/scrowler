@@ -96,7 +96,6 @@ Parallel.prototype.len = function() {
  * See Queue.prototype.bounds for more info about sync stuff
  */
 Parallel.prototype.bounds = function( s, e ){
-    //console.log("Parallel >>", s, e);
     var _len = ( e ? e - s : this._len );
     for( var i in this.acts ) {
         var a = this.acts[ i ];
@@ -166,6 +165,7 @@ function Anim( sel, elem, name, init, actor, args ){
 //Anim._iscroll = 0;  // global iscroll offset
 Anim._dom = {};     // cache of {selector -> DOM element} binds
 Anim._morphs = {};  // cache of morphs
+Anim._degrade = undefined;  // Animation degrade condition
 
 Anim.prototype.init = function(){
     this._len = this._init.apply( this, this._args );
@@ -239,9 +239,8 @@ Anim.prototype.bake = function(){
     if( this._morph.s  != null ) tmp += 'scale3d(' + this._morph.s.toFixed( 2 ) + ',' + this._morph.s.toFixed( 2 ) + ',1)';
 
     // touch CSS only if tmp is not empty
-    if( tmp ) {
+    if( tmp ){
         if( ! Anim._morphs[ this._sel ] )
-            //Anim._morphs[ this._sel ] = ['translate3d(0,' + Anim._iscroll + 'px,0)'];
             Anim._morphs[ this._sel ] = [];
         Anim._morphs[ this._sel ].push( tmp );
     }
@@ -259,14 +258,8 @@ Anim.prototype.len = function( pos ){
  * See Queue.prototype.bounds for more info about sync stuff
  */
 Anim.prototype.bounds = function( s, e ){
-    //if( !this._len )
-    //    this.init();  // We still can be not prepared.
-    //                  // If Anim._sync = true then Parallel doesn't call our Anim.len).
-
-    //console.log("Anim >>", s, e, this._sync, this._len);
-    this._start = s;                      // save start position of our animation
-    this._end = (e ? e : s + this._len);  // if we are synced then save actual end position
-    //console.log(this._elem, this._start, this._end);
+    this._start = s;                        // save start position of our animation
+    this._end = ( e ? e : s + this._len );  // if we are synced then save actual end position
 }
 
 Anim.prototype.sync = function(){
@@ -286,47 +279,47 @@ function Skr(){
 }
 
 Skr.prototype.len = function(){
-    var len = this.tree.len( 0 ) + $(window).height();
-    this.tree.bounds(0);  // calculate _start and _end for each Anim
+    var len = this.tree.len( 0 ) + $( window ).height();
+    this.tree.bounds( 0 );  // calculate _start and _end for each Anim
     return len;
 }
 
-Skr.prototype.func_parse = function( func ){
-    /*
-     * Regular expressions are taken from AngularJS
-     * See: http://stackoverflow.com/questions/1007981/how-to-get-function-parameter-names-values-dynamically-from-javascript
-     */
-    var FN_ARGS = /^(function\s*[^\(]*)\(\s*([^\)]*)\)/m;
-    var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
-    func = func.toString().replace( STRIP_COMMENTS, '' );
-    args = func.match( FN_ARGS )[2];
-    args = args.split( ',' );
-    res = {}
-
-    // parse each arg and extract default value
-    var arg;
-    while( arg = args.pop() ) {
-        if( arg.match('=') ) {
-            var pair = arg.split('=');
-            res[ pair[0].trim() ] = eval( pair[1].trim() );
-        } else {
-            res[ arg.trim() ] = null;
-        }
-    }
-
-    // get keys of array (names of func's args)
-    args = [];
-    for( arg in res )
-        args.push( arg );
-
-    return [
-        // recompile func without default values
-        // see: http://stackoverflow.com/questions/1271516/executing-anonymous-functions-created-using-javascript-eval
-        eval('false||' + func.replace( FN_ARGS, '$1(' + args.join(',') +')' )),
-        // send default values as separate item
-        res
-    ];
-}
+//Skr.prototype.func_parse = function( func ){
+//    /*
+//     * Regular expressions are taken from AngularJS
+//     * See: http://stackoverflow.com/questions/1007981/how-to-get-function-parameter-names-values-dynamically-from-javascript
+//     */
+//    var FN_ARGS = /^(function\s*[^\(]*)\(\s*([^\)]*)\)/m;
+//    var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
+//    func = func.toString().replace( STRIP_COMMENTS, '' );
+//    args = func.match( FN_ARGS )[2];
+//    args = args.split( ',' );
+//    res = {}
+//
+//    // parse each arg and extract default value
+//    var arg;
+//    while( arg = args.pop() ) {
+//        if( arg.match('=') ) {
+//            var pair = arg.split('=');
+//            res[ pair[0].trim() ] = eval( pair[1].trim() );
+//        } else {
+//            res[ arg.trim() ] = null;
+//        }
+//    }
+//
+//    // get keys of array (names of func's args)
+//    args = [];
+//    for( arg in res )
+//        args.push( arg );
+//
+//    return [
+//        // recompile func without default values
+//        // see: http://stackoverflow.com/questions/1271516/executing-anonymous-functions-created-using-javascript-eval
+//        eval('false||' + func.replace( FN_ARGS, '$1(' + args.join(',') +')' )),
+//        // send default values as separate item
+//        res
+//   ];
+//}
 
 Skr.prototype.config = function( conf ){
     if( this.conf )
@@ -337,14 +330,14 @@ Skr.prototype.config = function( conf ){
 }
 
 Skr.prototype.plugin = function( plug ){
-    var _methods = {};
+    //var _methods = {};
 
     // parse custom plugin methods to anim object (they can be called in config)
-    var bl = { 'name': true, 'init': true, 'actor': true };  // black list of names
-    for( var name in plug )
-        if( !( name in bl ) ){
-            _methods[ name ] = this.func_parse( plug[ name ] );
-        }
+    //var bl = { 'name': true, 'init': true, 'actor': true };  // black list of names
+    //for( var name in plug )
+    //    if( !( name in bl ) ){
+    //        _methods[ name ] = this.func_parse( plug[ name ] );
+    //    }
 
     var init = function( sel ) {
         var elem = $( sel );
@@ -361,18 +354,18 @@ Skr.prototype.plugin = function( plug ){
 
 
         // add parsed custom plugin methods to anim
-        for( var name in _methods ) {
-            // wrap function without default values for args
-            anim[ name ] = function(){
-                _methods[ name ][ 0 ].apply( anim, arguments );
-                return anim;
-            }
-
-            // setup default values for passed args in anim object
-            var defs = _methods[ name ][ 1 ];
-            for( var vname in defs )
-                anim[ vname ] = defs[ vname ];
-        }
+        //for( var name in _methods ) {
+        //    // wrap function without default values for args
+        //    anim[ name ] = function(){
+        //        _methods[ name ][ 0 ].apply( anim, arguments );
+        //        return anim;
+        //    }
+        //
+        //    // setup default values for passed args in anim object
+        //    var defs = _methods[ name ][ 1 ];
+        //    for( var vname in defs )
+        //        anim[ vname ] = defs[ vname ];
+        //}
 
         //
         // set smooth animation
@@ -419,42 +412,14 @@ Skr.prototype.animate = function( pos ){
     Anim._locks = {};    // remove all locks
     Anim._morphs = {};   // reset all transformations
     Anim._snap = null;   // reset snap position
+    Anim._degrade = ! ( 'ontouchstart' in window ) &&
+                    $( window ).width() * $( window ).height() > this.conf.degrade_width * this.conf.degrade_height;
 
     this.tree.animate( pos, pos - this.pos );  // animate to target position
     this.pos = pos;   // save old pos for onscroll
 
-    for( var i in Anim._morphs ) {
-        var elem = Anim._dom[ i ];
-
-        //elem.css( 'transition', 'none' );
-        //elem.css( '-webkit-transition', 'none' );
-        //elem.height();
-
-        elem.css( "transform", Anim._morphs[ i ].join( " " ) );
-
-        //elem.css( 'transition', 'transform ' +
-        //            this.conf.trans_time + 'ms ' +
-        //            this.conf.trans_func + ' 0ms' );
-        //elem.css( '-webkit-transition', '-webkit-transform ' +
-        //            this.conf.trans_time + 'ms ' +
-        //            this.conf.trans_func + ' 0ms' );
-
-        //var that = this;
-        //function mh(){
-        //    var ii = i;
-        //    var e = elem;
-        //    return function(){
-        //        e.css( "transform", Anim._morphs[ ii ].join( " " ) );
-
-        //        e.css( 'transition', 'transform ' +
-        //                    that.conf.trans_time + 'ms ' +
-        //                    that.conf.trans_func + ' 0ms' );
-        //        e.css( '-webkit-transition', '-webkit-transform ' +
-        //                    that.conf.trans_time + 'ms ' +
-        //                    that.conf.trans_func + ' 0ms' );
-        //    }
-        //}
-    }
+    for( var i in Anim._morphs )
+        Anim._dom[ i ].css( "transform", Anim._morphs[ i ].join( " " ) );
 };
 
 /*
@@ -470,6 +435,8 @@ skr.config({
     'trans_time': 180,         // Transition duration in ms
     'trans_func': 'ease-out',  // Transition timing function
     'onscroll': function(){},  // onscroll listener (no-op by default)
+    'degrade_width': 1280,     // Animation degrade condition (from CSS 'transform' to 'position')
+    'degrade_height': 1024,
 });
 
 skr.plugin({
@@ -495,32 +462,19 @@ skr.plugin({
 
         elem.css( 'top', this.top + '%' );
 
-        // TODO: remove this hack
-        this.degrade = (!Owlet.utils.hasTouch && this.h * $(window).width() > 1280 * 1024);
-
         // remove any previous transforms from element
-        if( this.degrade )
+        if( Anim._degrade )
             elem.css( 'transform', 'none' );
-        //console.log("hasTouch =", Owlet.utils.hasTouch);
-        //console.log("S =", this.h * $(window).width());
-        //console.log("degrade =", this.degrade);
 
         return this.h + this.delay;
     },
     'actor': function( elem, m, per, pos ){
         //m.dy = Math.max( -pos, -this.h );
-        if( this.degrade )
-            elem.css('top', 'calc(' + this.top + '% - ' + Math.min( pos, this.h ) + 'px)' );
+        if( Anim._degrade )
+            elem.css( 'top', 'calc(' + this.top + '% - ' + Math.min( pos, this.h ) + 'px)' );
         else
             m.dy = Math.max( -pos, -this.h );
     },
-
-    // TODO: declarative vs flexible styles
-    // I.e. this can be changed to {'offset' : offset-default-value}
-    // TODO-TODO: remove this.cap = cap because of cap-cap-cap
-    //'offset': function( off = 0 ){
-    //    this.off = off;  // CAP here!!!
-    //}
 });
 
 skr.plugin({
@@ -594,8 +548,6 @@ skr.plugin({
             m.dy = this.dx_dy[ 1 ][ 0 ] * per;
             m.uy = this.dx_dy[ 1 ][ 1 ];
         }
-        //elem.css( 'transform', 'translate(' + this.dx_dy[ 0 ][ 0 ] * per + this.dx_dy[ 0 ][ 1 ] + ','
-        //                                    + this.dx_dy[ 1 ][ 0 ] * per + this.dx_dy[ 1 ][ 1 ] + ')' );
     }
 });
 
