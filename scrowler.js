@@ -122,6 +122,7 @@ function Anim( sel, elem, name, init, actor, args ){
     this._start = null;     // scroll position when we start
     this._end   = null;     // scroll position when we finish animation
     this._snap  = false;    // true - snap to start/end of this animation when we inside it
+    this._hash  = null;     // name of #hash in url which is associated with this anim
 
     /*
      * Create morph object for dealing with CSS 'transform' property — it
@@ -166,6 +167,7 @@ function Anim( sel, elem, name, init, actor, args ){
 //Anim._iscroll = 0;  // global iscroll offset
 Anim._dom = {};     // cache of {selector -> DOM element} binds
 Anim._morphs = {};  // cache of morphs
+Anim._hash = {};    // cache of {#hashname -> pos}
 
 Anim.prototype.init = function(){
     this._len = this._init.apply( this, this._args );
@@ -209,7 +211,7 @@ Anim.prototype.animate = function( pos, delta ){
         this._args[ 0 ],    // element to animate
         this._morph,        // special object for CSS 'transform' property
         per,                // percent of animation
-        _pos               // current position in animation in px
+        _pos                // current position in animation in px
     ].concat( this._args.slice( 1 ) ); // .. and append this data to setup options
 
     this._actor.apply( this, args );
@@ -223,7 +225,6 @@ Anim.prototype.animate = function( pos, delta ){
         if( 0.2 < per && per < 0.8 && delta < 0 )
             Anim._snap = this._start;
     }
-
 
     return _pos;
 }
@@ -266,7 +267,15 @@ Anim.prototype.bounds = function( s, e ){
     //console.log("Anim >>", s, e, this._sync, this._len);
     this._start = s;                      // save start position of our animation
     this._end = (e ? e : s + this._len);  // if we are synced then save actual end position
-    //console.log(this._elem, this._start, this._end);
+
+    if( this._hash ) {
+        var pos = this._end;
+
+        if( this._hash_off == 'start+window' )
+            pos = this._start + $(window).height();
+
+        Anim._hash[ this._hash ] = pos - 1;
+    }
 }
 
 Anim.prototype.sync = function(){
@@ -276,6 +285,12 @@ Anim.prototype.sync = function(){
 
 Anim.prototype.snap = function(){
     this._snap = true;
+    return this;
+}
+
+Anim.prototype.hash = function( name, offset ){
+    this._hash = name;        // save hash name for anim
+    this._hash_off = offset;  // save optional hash offset
     return this;
 }
 
@@ -411,8 +426,6 @@ Skr.prototype.parallel = function( acts ){
  * Animate all frames to the given pos
  */
 Skr.prototype.animate = function( pos ){
-    //Anim._iscroll = pos;
-
     // call onscroll event listener
     this.conf.onscroll( pos, pos - this.pos );
 
@@ -455,6 +468,12 @@ Skr.prototype.animate = function( pos ){
         //    }
         //}
     }
+
+    // signal about possible #hash changes
+    for( h in Anim._hash )
+        if( Anim._hash[ h ] <= pos ) {
+            owlet.hash( h );
+        }
 };
 
 /*
@@ -667,34 +686,15 @@ skr.plugin({
     },
 });
 
-skr.plugin({
-    'name': 'hash',
-    'init': function( elem, offset ){
-        var that = this;
-        this.name = elem._selector;
-
-        // setup helper offset
-        this.offset = 0;
-        if( offset == '+window' )
-            this.offset = $(window).height();
-
-        function test(){
-            //console.log("testing", window.location.hash);
-            if( window.location.hash == that.name ) {
-                //console.log("wow, we are equal", that.name);
-                owlet.scroll( that._end + that.offset );  // try to jump to hash (this jump possibly can be ignored by owlet)
-            }
-            return false;
-        }
-
-        $(window).on('hashchange', test);
-
-        return 1;
-    },
-    'actor': function( elem, m, per, pos ){
-        //if( pos ) {
-        //    console.log("setting without jump", this.name);
-        //    owlet.hash(this.name);  // set hash without jumping to it
-        //}
-    },
-});
+//skr.plugin({
+//    'name': 'hash',
+//    'init': function( elem, offset ){
+//        Anim._hash[ elem._selector ] = this._end;
+//        return 1;
+//    },
+//    'actor': function( elem, m, per, pos ){
+//        if( pos ) {
+//            owlet.hash(this.name);  // set hash without jumping to it
+//        }
+//    },
+//});

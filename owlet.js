@@ -813,7 +813,12 @@ function Owlet(){
     this.opos = null;      // old position
     this.iscroll = null;   // scroller for iPad (yes, I am cap)
     this.jumping = false;  // true -- we are moving to target position
-    this.snap_ignore = false;  // when we do hard jump this flag is true
+    this._snap_ignore = false;  // when we do hard jump this flag is true
+
+    this._ohash = window.location.hash;
+    if( this._ohash == '' )
+        this._ohash = '#';
+    this._hash = this._ohash;
 }
 
 Owlet.prototype.run = function( el, options ) {
@@ -839,6 +844,27 @@ Owlet.prototype.run = function( el, options ) {
         $(window).scroll();  // fire DOM animation via scrowler
     }
 
+
+    $(window).on('hashchange', function(){
+        console.log("HASH CHANGED", window.location.hash);
+        //$('.debug').html('olololo ' + window.location.hash );
+
+        /*
+         * TODO: owlet knows about Anim???
+         */
+        var pos = Anim._hash[ window.location.hash ];
+        if( pos )                    // if we know this hash
+            that.scroll( pos + 5 );  // .. then do hard jump to this position
+
+        ////console.log("testing", window.location.hash);
+        //if( window.location.hash == that.name ) {
+        //    //console.log("wow, we are equal", that.name);
+        //    owlet.scroll( that._end + that.offset );  // try to jump to hash (this jump possibly
+        //}
+        return false;
+    });
+
+
     $(window).trigger('hashchange');  // jump at right position after startup
 }
 
@@ -851,6 +877,7 @@ Owlet.prototype._bind = function() {
             //skr.animate( $(window).scrollTop() );
             that.hash();
         }
+
 
     $(window).bind('scroll', this._jscroll);
 }
@@ -884,15 +911,17 @@ Owlet.prototype.update = function() {
  */
 Owlet.prototype.scroll = function( pos, soft, rate ) {
     // ignore new hard jumps during already going hard jumps
-    if( this.snap_ignore && !soft )
+    if( this._snap_ignore && !soft ) {
+        //console.log("ignore snapping");
         return;
+    }
 
     // avoid this jumping fired by plugin, because hash was chaged by us
-    if( this._hash_changing ) {
-        console.log("jump to ", pos, "was ignored");
-        this._hash_changing = false;  // reset flag
-        return;                       // go away
-    }
+    //if( this._hash_ignore ) {
+    //    console.log("jump to ", pos, "was ignored");
+    //    this._hash_ignore = false;  // reset flag
+    //    return;                       // go away
+    //}
 
     var hasTouch = IScroll.utils.hasTouch;
     if( hasTouch ) {
@@ -930,7 +959,7 @@ Owlet.prototype.scroll = function( pos, soft, rate ) {
          * How about code refactoring?
          */
         if( Anim._snap ) {
-            console.log("snapping to ", Anim._snap);
+            //console.log("snapping to ", Anim._snap);
             that.scroll( Anim._snap, false, 0.5 );  // do hard scroll on low speed
         }
 
@@ -939,14 +968,15 @@ Owlet.prototype.scroll = function( pos, soft, rate ) {
         else {
             //console.log("false");
             that.jumping = false;
-            that.snap_ignore = false;  // if we were in hard mode then we can react to snapping again
+            that._snap_ignore = false;  // if we were in hard mode then we can react to snapping again
+            that.hash();
             console.log("finish");
         }
     }
 
     // do hard scroll: set scrollTop
     if( !soft ) {
-        this.snap_ignore = true;      // we can't react to snapping during #hash moving
+        this._snap_ignore = true;     // we can't react to snapping during hard (#hash) moving
 
         this._unbind();               // prevent firing new scrollTop events
         $(window).scrollTop( pos );   // set scrollTop in one go
@@ -954,7 +984,7 @@ Owlet.prototype.scroll = function( pos, soft, rate ) {
     }
 
     //this.stamp = +new Date();  // save current timestamp
-    console.log("jump to ", pos);
+    //console.log("jump to ", pos);
     this.speed = 1.0*(pos - skr.pos) / skr.conf.trans_time;
     this.tpos = pos;             // save target pos
     this.rate = ( rate ? rate : 1 );
@@ -970,17 +1000,31 @@ Owlet.prototype.scroll = function( pos, soft, rate ) {
  * Function to manually change hash without jumping to it.
  * All calls from scrowler plugins are chached.
  * When called wilthout args this function will change url hash and
- * set special flag _hash_changing for avoiding real scrowler jumping.
+ * set special flag _hash_ignore for avoiding real #hash jumping.
  */
 Owlet.prototype.hash = function( name ) {
-    if( name )
+    if( name ) {
         this._hash = name;
-    else {
-        if( this.ohash != this._hash ) {
-            console.log('setted --', this._hash, ' ohash was ', this.ohash);
-            window.location.hash = this._hash;
-            this._hash_changing = true;
-            this.ohash = this._hash;
+        //console.log("_ohash = ", this._ohash, "     nhash = ", name);
+    } else {
+        if( this._ohash != this._hash ) {
+
+            //this._hash_ignore = true;
+            //var that = this;
+
+            //that._unbind();
+            //function restore() {
+            //    console.log("xxxxxxxxxxx");
+            //    that._bind();
+            //    //this._hash_ignore = false;
+            //    $(window).unbind('hashchange', restore);
+            //}
+            //$(window).on('hashchange', restore);
+
+            history.replaceState(null, null, this._hash);
+            //window.location.hash = this._hash;
+
+            this._ohash = this._hash;
         }
     }
 }
