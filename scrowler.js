@@ -20,7 +20,6 @@ Queue.prototype.len = function(){
 }
 
 Queue.prototype.bounds = function( s, e ){
-    //console.log("Queue >>", s, e);
     /*
      * Calculate our real length.
      * If end bound is passed then we (or out parent is synced)
@@ -66,7 +65,6 @@ Parallel.prototype.sync = function(){
 }
 
 Parallel.prototype.animate = function( pos, delta ){
-    //console.log($(window).scrollTop());
     var m = 0;
     for( var i in this.acts )
         if( this.acts[ i ]._sync ){
@@ -165,6 +163,7 @@ function Anim( sel, elem, name, init, actor, args ){
 //Anim._iscroll = 0;  // global iscroll offset
 Anim._dom = {};     // cache of {selector -> DOM element} binds
 Anim._morphs = {};  // cache of morphs
+Anim._def_morphs = {};  // Cache of default morphs
 Anim._degrade = undefined;  // Animation degrade condition
 
 Anim.prototype.init = function(){
@@ -232,17 +231,30 @@ Anim.prototype.animate = function( pos, delta ){
  * Bake morphs into CSS 'transform' property values
  */
 Anim.prototype.bake = function(){
-    var tmp = '';
-    if( this._morph.dx != null ) tmp += 'translate3d(' + Math.round( this._morph.dx ) + this._morph.ux + ',0,0) ';
-    if( this._morph.dy != null ) tmp += 'translate3d(0, ' + Math.round( this._morph.dy ) + this._morph.uy + ',0) ';
-    if( this._morph.r  != null ) tmp += 'rotate3d(0,0,1,' + this._morph.r.toFixed( 2 ) + 'deg) ';
-    if( this._morph.s  != null ) tmp += 'scale3d(' + this._morph.s.toFixed( 2 ) + ',' + this._morph.s.toFixed( 2 ) + ',1)';
+    var tmp_trans = '',
+        tmp_left = '',
+        tmp_top = '';
+
+    // An auxiliary function: 2 --> ' + 2', -2 --> ' - 2'
+    function str_sign( n ){
+        return ( n && n / Math.abs( n ) ) + 1 ? ' + ' + n : ' - ' + Math.abs( n );
+    }
+
+    if( Anim._degrade && Anim._degrade ){
+        if( this._morph.dx != null ) tmp_left += str_sign( Math.round( this._morph.dx ) ) + this._morph.ux + ' ';
+        if( this._morph.dy != null ) tmp_top += str_sign( Math.round( this._morph.dy ) ) + this._morph.uy + ' ';
+    }else{
+        if( this._morph.dx != null ) tmp_trans += 'translate3d(' + Math.round( this._morph.dx ) + this._morph.ux + ',0,0) ';
+        if( this._morph.dy != null ) tmp_trans += 'translate3d(0, ' + Math.round( this._morph.dy ) + this._morph.uy + ',0) ';
+    }
+    if( this._morph.r  != null ) tmp_trans += 'rotate3d(0,0,1,' + this._morph.r.toFixed( 2 ) + 'deg) ';
+    if( this._morph.s  != null ) tmp_trans += 'scale3d(' + this._morph.s.toFixed( 2 ) + ',' + this._morph.s.toFixed( 2 ) + ',1)';
 
     // touch CSS only if tmp is not empty
-    if( tmp ){
+    if( tmp_trans || tmp_left || tmp_top ){
         if( ! Anim._morphs[ this._sel ] )
             Anim._morphs[ this._sel ] = [];
-        Anim._morphs[ this._sel ].push( tmp );
+        Anim._morphs[ this._sel ].push( { transform: tmp_trans, left: tmp_left, top: tmp_top } );
     }
 }
 
@@ -368,6 +380,21 @@ Skr.prototype.plugin = function( plug ){
         //}
 
         //
+        // Get default morphs
+        //
+        if( elem[ 0 ].tagName && ! Anim._def_morphs[ sel ] ){
+            var transform = elem.css( 'transform' ),
+                left = elem.css( 'left' ),
+                top = elem.css( 'top' ); // TODO: Arrrgh, slide plugin set default top: 100% AFTER this! Workaround is needed
+
+            console.info( plug.name, sel, top );
+            Anim._def_morphs[ sel ] = {
+                transform: transform === 'none' ? '' : transform,
+                left: left === 'auto' ? '0px' : left,
+                top: top === 'auto' ? '0px' : top
+            };
+        }
+        //
         // set smooth animation
         //
         //elem.css( 'transition', 'transform ' +
@@ -418,8 +445,16 @@ Skr.prototype.animate = function( pos ){
     this.tree.animate( pos, pos - this.pos );  // animate to target position
     this.pos = pos;   // save old pos for onscroll
 
-    for( var i in Anim._morphs )
-        Anim._dom[ i ].css( "transform", Anim._morphs[ i ].join( " " ) );
+    for( var i in Anim._morphs ){
+        var transform = Anim._morphs[ i ].map(function( v ){ return v.transform }).join( ' ' ),
+            left = Anim._morphs[ i ].map(function( v ){ return v.left }).join( '' ),
+            top = Anim._morphs[ i ].map(function( v ){ return v.top }).join( '' );
+
+        if( transform ) Anim._dom[ i ].css( 'transform', Anim._def_morphs[ i ].transform + transform );
+        if( left ) Anim._dom[ i ].css( 'left', 'calc(' + Anim._def_morphs[ i ].left + left + ')' );
+        if( top ) Anim._dom[ i ].css( 'top', 'calc(' + Anim._def_morphs[ i ].top + top + ')' );
+    }
+
 };
 
 /*
@@ -443,7 +478,6 @@ skr.plugin({
     'name': 'slide',
     'init': function( elem, type ){
         // setup size
-        //console.log("here", $(window).height());
         elem.css( 'height', $( window ).height() );
 
         // setup delay
@@ -469,11 +503,11 @@ skr.plugin({
         return this.h + this.delay;
     },
     'actor': function( elem, m, per, pos ){
-        //m.dy = Math.max( -pos, -this.h );
-        if( Anim._degrade )
-            elem.css( 'top', 'calc(' + this.top + '% - ' + Math.min( pos, this.h ) + 'px)' );
-        else
-            m.dy = Math.max( -pos, -this.h );
+        m.dy = Math.max( -pos, -this.h );
+        //if( Anim._degrade )
+        //    elem.css( 'top', 'calc(' + this.top + '% - ' + Math.min( pos, this.h ) + 'px)' );
+        //else
+        //    m.dy = Math.max( -pos, -this.h );
     },
 });
 
@@ -631,9 +665,7 @@ skr.plugin({
             this.offset = $(window).height();
 
         function test(){
-            //console.log("testing", window.location.hash);
-            if( window.location.hash == that.name ) {
-                //console.log("wow, we are equal", that.name);
+            if( window.location.hash == that.name ){
                 owlet.scroll( that._end + that.offset );  // try to jump to hash (this jump possibly can be ignored by owlet)
             }
             return false;
