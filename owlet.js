@@ -827,26 +827,27 @@ Owlet.prototype.run = function( el, options ) {
      * See: https://github.com/Modernizr/Modernizr/blob/master/feature-detects/touchevents.js#L41
      */
     var hasTouch = IScroll.utils.hasTouch;
-    var $body = $(el).children(':first');
     var len = skr.len();
     var that = this;
 
+    this.body = hasTouch ? $(el).children(':first') : $( 'body' );
+
     //hasTouch = true;
     if( hasTouch ) {
-        $body.height( len );
+        this.body.height( len );
         if( !this.iscroll ) {
             this.iscroll = new IScroll( el, options );
             this.loop();
         }
     } else {
-        $('body').height( len );
+        this.body.height( len );
         this._bind();
         $(window).scroll();  // fire DOM animation via scrowler
     }
 
 
     $(window).on('hashchange', function(){
-        console.log("HASH CHANGED", window.location.hash);
+        //console.log("HASH CHANGED", window.location.hash);
         //$('.debug').html('olololo ' + window.location.hash );
 
         /*
@@ -866,6 +867,14 @@ Owlet.prototype.run = function( el, options ) {
 
 
     $(window).trigger('hashchange');  // jump at right position after startup
+}
+
+
+Owlet.prototype.stop = function(){
+    if( this.body ){
+        this.body.css( 'height', 'auto' );
+        this._unbind();
+    }
 }
 
 
@@ -970,7 +979,7 @@ Owlet.prototype.scroll = function( pos, soft, rate ) {
             that.jumping = false;
             that._snap_ignore = false;  // if we were in hard mode then we can react to snapping again
             that.hash();
-            console.log("finish");
+            //console.log("finish");
         }
     }
 
@@ -989,7 +998,7 @@ Owlet.prototype.scroll = function( pos, soft, rate ) {
     this.tpos = pos;             // save target pos
     this.rate = ( rate ? rate : 1 );
     if( !this.jumping ) {
-        console.log("start");
+        //console.log("start");
         this.jumping = true;
         _loop();
     }

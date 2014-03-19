@@ -11,6 +11,11 @@ Queue.prototype.animate = function( pos, delta ){
     return pos;
 }
 
+Queue.prototype.deinit = function(){
+    for( var i in this.acts )
+        this.acts[ i ].deinit();
+}
+
 Queue.prototype.len = function(){
     var s = 0;
     for( var i in this.acts )
@@ -79,6 +84,8 @@ Parallel.prototype.animate = function( pos, delta ){
     return m;
 }
 
+Parallel.prototype.deinit = Queue.prototype.deinit;
+
 Parallel.prototype.len = function() {
     this._len = 0;
 
@@ -110,7 +117,7 @@ Parallel.prototype.bounds = function( s, e ){
 }
 
 
-function Anim( sel, elem, name, init, actor, args ){
+function Anim( sel, elem, name, init, deinit, actor, args ){
     this._elem  = elem;     // animated element returned by $(sel)
     this._name  = name;     // .. plugin name, also for locks
     this._actor = actor;    // function which animates elem
@@ -161,6 +168,13 @@ function Anim( sel, elem, name, init, actor, args ){
     this._sel = sel;
     Anim._dom[ this._sel ] = elem;
 
+    if( typeof deinit === 'function' ){
+        var def_deinit = this.deinit;
+        this.deinit = function(){
+            def_deinit();
+            deinit( this._elem );
+        }
+    }
 }
 
 //Anim._iscroll = 0;   // global iscroll offset
@@ -230,6 +244,11 @@ Anim.prototype.animate = function( pos, delta ){
     return _pos;
 }
 
+Anim.prototype.deinit = function(){
+    if( this._elem )
+        this._elem.css( 'transform', 'none' );
+}
+
 /*
  * Bake morphs into CSS 'transform' property values
  */
@@ -296,7 +315,7 @@ function Skr(){
 }
 
 Skr.prototype.len = function(){
-    var len = this.tree.len( 0 ) + $( window ).height();
+    var len = this.tree.len( 0 ) + window.innerHeight;
     this.tree.bounds( 0 );  // calculate _start and _end for each Anim
     return len;
 }
@@ -367,8 +386,7 @@ Skr.prototype.plugin = function( plug ){
         var args = [ elem ].concat( Array.prototype.slice.call( arguments, 1 ) );
 
         // pack elem, init and actor to Anim object
-        var anim = new Anim( sel, elem, plug.name, plug.init, plug.actor, args );
-
+        var anim = new Anim( sel, elem, plug.name, plug.init, plug.deinit, plug.actor, args );
 
         // add parsed custom plugin methods to anim
         //for( var name in _methods ) {
@@ -428,7 +446,7 @@ Skr.prototype.animate = function( pos ){
     Anim._morphs = {};   // reset all transformations
     Anim._snap = null;   // reset snap position
     Anim._degrade = ! ( 'ontouchstart' in window ) &&
-                    $( window ).width() * $( window ).height() > this.conf.degrade_width * this.conf.degrade_height;
+                    window.innerWidth * window.innerHeight > this.conf.degrade_width * this.conf.degrade_height;
 
     this.tree.animate( pos, pos - this.pos );  // animate to target position
     this.pos = pos;   // save old pos for onscroll
@@ -444,6 +462,14 @@ Skr.prototype.animate = function( pos ){
             owlet.hash( h );
         }
 };
+
+/*
+ * Deinitialize scrowler
+ */
+Skr.prototype.deinit = function(){
+    if( this.tree )
+        this.tree.deinit();
+}
 
 /*
  * Syntax sugar for saving handler in config.
@@ -466,8 +492,7 @@ skr.plugin({
     'name': 'slide',
     'init': function( elem, type ){
         // setup size
-        //console.log("here", $(window).height());
-        elem.css( 'height', $( window ).height() );
+        elem.css( 'height', window.innerHeight );
 
         // setup delay
         this.delay = 200;
@@ -476,10 +501,10 @@ skr.plugin({
         this.top = 100;                    // offset in percents for top
         elem.css( 'position', 'fixed' );   // .. relative to window
 
-        this.h = elem.outerHeight();
+        this.h = elem[ 0 ].offsetHeight;
 
         if( type == 'first' ){
-            this.h -= $( window ).height();  // decrease animation length
+            this.h -= window.innerHeight;  // decrease animation length
             this.top = 0;                    // .. and don't hide first slide
         }
 
@@ -498,6 +523,14 @@ skr.plugin({
         else
             m.dy = Math.max( -pos, -this.h );
     },
+    'deinit': function( elem ){
+        // TODO: 'relative' value may broke the layout
+        elem.css({
+            top: 'auto',
+            position: 'relative',
+            height: 'auto'
+        });
+    }
 });
 
 skr.plugin({
@@ -517,9 +550,9 @@ skr.plugin({
 
         this.bl = 0;
         if( baseline == 'center' )
-            this.bl = elem.outerHeight() / 2 | 0;
+            this.bl = elem.innerHeight() / 2 | 0;
         if( baseline == 'bottom' )
-            this.bl = elem.outerHeight();
+            this.bl = elem.innerHeight();
 
         return len;
     },
@@ -617,6 +650,9 @@ skr.plugin({
     'actor': function( elem, m, per, pos, sop, eop ){
         elem.css( 'opacity', sop + ( eop - sop ) * per );
     },
+    'deinit': function( elem ){
+        elem.css( 'opacity', 1 );
+    }
 });
 
 skr.plugin({
