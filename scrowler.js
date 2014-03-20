@@ -519,7 +519,7 @@ skr.plugin({
     'actor': function( elem, m, per, pos ){
         //m.dy = Math.max( -pos, -this.h );
         if( Anim._degrade )
-            elem.css( 'top', 'calc(' + this.top + '% - ' + Math.min( pos, this.h ) + 'px)' );
+            elem.css( 'top', 'calc(' + this.top + '% - ' + Math.round( Math.min( pos, this.h ) ) + 'px)' );
         else
             m.dy = Math.max( -pos, -this.h );
     },
