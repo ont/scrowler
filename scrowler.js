@@ -550,9 +550,9 @@ skr.plugin({
 
         this.bl = 0;
         if( baseline == 'center' )
-            this.bl = elem.innerHeight() / 2 | 0;
+            this.bl = elem.outerHeight() / 2 | 0;
         if( baseline == 'bottom' )
-            this.bl = elem.innerHeight();
+            this.bl = elem.outerHeight();
 
         return len;
     },
