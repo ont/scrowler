@@ -490,9 +490,9 @@ skr.config({
 
 skr.plugin({
     'name': 'slide',
-    'init': function( elem, type ){
+    'init': function( elem, type, height ){
         // setup size
-        elem.css( 'height', window.innerHeight );
+        elem.css( 'height', height ? height : window.innerHeight );
 
         // setup delay
         this.delay = 200;
