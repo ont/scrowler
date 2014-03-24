@@ -254,10 +254,10 @@ Anim.prototype.deinit = function(){
  */
 Anim.prototype.bake = function(){
     var tmp = '';
-    if( this._morph.dx != null ) tmp += 'translate3d(' + Math.round( this._morph.dx ) + this._morph.ux + ',0,0) ';
-    if( this._morph.dy != null ) tmp += 'translate3d(0, ' + Math.round( this._morph.dy ) + this._morph.uy + ',0) ';
-    if( this._morph.r  != null ) tmp += 'rotate3d(0,0,1,' + this._morph.r.toFixed( 2 ) + 'deg) ';
-    if( this._morph.s  != null ) tmp += 'scale3d(' + this._morph.s.toFixed( 2 ) + ',' + this._morph.s.toFixed( 2 ) + ',1)';
+    if( this._morph.dx != null ) tmp += 'translate3d(' + this._morph.dx + this._morph.ux + ',0,0) ';
+    if( this._morph.dy != null ) tmp += 'translate3d(0, ' + this._morph.dy + this._morph.uy + ',0) ';
+    if( this._morph.r  != null ) tmp += 'rotate3d(0,0,1,' + this._morph.r + 'deg) ';
+    if( this._morph.s  != null ) tmp += 'scale3d(' + this._morph.s + ',' + this._morph.s + ',1)';
 
     // touch CSS only if tmp is not empty
     if( tmp ){
