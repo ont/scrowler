@@ -494,9 +494,6 @@ skr.plugin({
         // setup size
         elem.css( 'height', height ? height : window.innerHeight );
 
-        // setup delay
-        this.delay = 200;
-
         // hide element
         this.top = 100;                    // offset in percents for top
         elem.css( 'position', 'fixed' );   // .. relative to window
@@ -514,7 +511,7 @@ skr.plugin({
         if( Anim._degrade )
             elem.css( 'transform', 'none' );
 
-        return this.h + this.delay;
+        return this.h;
     },
     'actor': function( elem, m, per, pos ){
         //m.dy = Math.max( -pos, -this.h );
