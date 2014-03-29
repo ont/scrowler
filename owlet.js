@@ -878,6 +878,21 @@ Owlet.prototype.stop = function(){
 }
 
 
+Owlet.prototype.pause = function(){
+    this._unbind();
+    var that = this;
+    window.onscroll = function(){
+        this.scrollTo( 0, that.tpos );
+    }
+}
+
+
+Owlet.prototype.resume = function(){
+    this._bind();
+    window.onscroll = function(){};
+}
+
+
 Owlet.prototype._bind = function() {
     var that = this;
     if( !this._jscroll )
