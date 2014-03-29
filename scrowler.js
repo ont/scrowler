@@ -668,7 +668,7 @@ skr.plugin({
         return 1;
     },
     'actor': function( elem, m, per, pos, klass ){
-        if( pos )
+        if( Math.floor( pos ) )
             elem.addClass( klass );
         else
             elem.removeClass( klass );
