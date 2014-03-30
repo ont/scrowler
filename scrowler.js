@@ -117,7 +117,7 @@ Parallel.prototype.bounds = function( s, e ){
 }
 
 
-function Anim( sel, elem, name, init, deinit, actor, args ){
+function Anim( sel, elem, name, init, actor, args ){
     this._elem  = elem;     // animated element returned by $(sel)
     this._name  = name;     // .. plugin name, also for locks
     this._actor = actor;    // function which animates elem
@@ -167,14 +167,6 @@ function Anim( sel, elem, name, init, deinit, actor, args ){
 
     this._sel = sel;
     Anim._dom[ this._sel ] = elem;
-
-    if( typeof deinit === 'function' ){
-        var def_deinit = this.deinit;
-        this.deinit = function(){
-            def_deinit();
-            deinit( this._elem );
-        }
-    }
 }
 
 //Anim._iscroll = 0;   // global iscroll offset
@@ -246,7 +238,7 @@ Anim.prototype.animate = function( pos, delta ){
 
 Anim.prototype.deinit = function(){
     if( this._elem )
-        this._elem.css( 'transform', 'none' );
+        this._elem[ 0 ].style = "";
 }
 
 /*
@@ -386,7 +378,7 @@ Skr.prototype.plugin = function( plug ){
         var args = [ elem ].concat( Array.prototype.slice.call( arguments, 1 ) );
 
         // pack elem, init and actor to Anim object
-        var anim = new Anim( sel, elem, plug.name, plug.init, plug.deinit, plug.actor, args );
+        var anim = new Anim( sel, elem, plug.name, plug.init, plug.actor, args );
 
         // add parsed custom plugin methods to anim
         //for( var name in _methods ) {
@@ -519,14 +511,6 @@ skr.plugin({
             elem.css( 'top', 'calc(' + this.top + '% - ' + Math.round( Math.min( pos, this.h ) ) + 'px)' );
         else
             m.dy = Math.max( -pos, -this.h );
-    },
-    'deinit': function( elem ){
-        // TODO: 'relative' value may broke the layout
-        elem.css({
-            top: 'auto',
-            position: 'relative',
-            height: 'auto'
-        });
     }
 });
 
@@ -646,9 +630,6 @@ skr.plugin({
     },
     'actor': function( elem, m, per, pos, sop, eop ){
         elem.css( 'opacity', sop + ( eop - sop ) * per );
-    },
-    'deinit': function( elem ){
-        elem.css( 'opacity', 1 );
     }
 });
 
