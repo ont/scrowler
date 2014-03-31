@@ -872,7 +872,7 @@ Owlet.prototype.run = function( el, options ) {
 
 Owlet.prototype.stop = function(){
     if( this.body ){
-        this.body[ 0 ].style = '';
+        this.body[ 0 ].removeAttribute( 'style' );
         this._unbind();
     }
 }

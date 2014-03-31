@@ -237,8 +237,8 @@ Anim.prototype.animate = function( pos, delta ){
 }
 
 Anim.prototype.deinit = function(){
-    if( this._elem )
-        this._elem[ 0 ].style = "";
+    if( this._elem && this._elem[ 0 ].hasAttribute )
+        this._elem[ 0 ].removeAttribute( 'style' );
 }
 
 /*
