@@ -842,7 +842,6 @@ Owlet.prototype.run = function( el, options ) {
     } else {
         this.body.height( len );
         this._bind();
-        $(window).scroll();  // fire DOM animation via scrowler
     }
 
 
@@ -855,7 +854,9 @@ Owlet.prototype.run = function( el, options ) {
          */
         var pos = Anim._hash[ window.location.hash ];
         if( pos )                    // if we know this hash
-            that.scroll( pos + 5 );  // .. then do hard jump to this position
+            that.scroll( pos + 1 );  // .. then do hard jump to this position
+        else
+            $( window ).trigger( 'scroll' );
 
         ////console.log("testing", window.location.hash);
         //if( window.location.hash == that.name ) {
