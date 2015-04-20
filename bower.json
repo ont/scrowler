@@ -1,0 +1,22 @@
+{
+  "name": "scrowler",
+  "main": "scrowler.js",
+  "version": "0.0.0",
+  "homepage": "https://github.com/ont/scrowler",
+  "authors": [
+    "ont <ont.rif@gmail.com>",
+    "Daniil <filippovdaniil@gmail.com>"
+  ],
+  "description": "Fast and versatile parallax scrolling",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "~2.1.3"
+  }
+}
